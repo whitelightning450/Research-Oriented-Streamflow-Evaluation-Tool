@@ -38,7 +38,12 @@ Below is a list of required packages to operate the tool:
 
 ## Streamflow Evaluation Options
 Each streamflow evaluation method requires similar inputs, including a start date, end date, and model.
-For all examples the model used is the NWM v2.1. 
+There are currently three different evaluation classes, each providing the user a unique method for evaluating streamflow modeling performance:
+- State Land Use - Land Cover Evaluation
+- Hydrologic Unit Code(s)
+- USGS site id(s)
+
+For all examples the prediction are from the NWM v2.1 retrospective. 
 
 ### State Land Use - Land Cover Evaluation
 To determine how LULC affects the predictive performance of streamflow models, the Streamflow_Evaluator uses StreamStats to categorize the watershed upstream of each USGS monitoring site by watershed charateristics.
