@@ -59,7 +59,12 @@ To determine how LULC affects the predictive performance of streamflow models, t
 
 
 
+Start the Streamflow_Evaluator by loading it into your interactive python environment (tested and developed with Jupyter notebooks).  
+![starting_SE](https://user-images.githubusercontent.com/33735397/205772795-ca0f9d6d-37df-46b4-9631-3d40713d2ebe.PNG)
 
+Initiate the Streamflow_Evaluator by inputting a start date, end date, state, model, and classification (see above table).
+Dependent on data availability, current NWIS is from 1980 - present where available and NWM v2.1 retrospective is from 1980-2020.
 
+![initiateSE_LULC](https://user-images.githubusercontent.com/33735397/205773388-befae3c2-9c48-43ca-ba0c-9d847299dc80.PNG)
 
 
