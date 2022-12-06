@@ -43,9 +43,9 @@ For all examples the model used is the NWM v2.1.
 ### State Land Use - Land Cover Evaluation
 To determine how LULC affects the predictive performance of streamflow models, the Streamflow_Evaluator uses StreamStats to categorize the watershed upstream of each USGS monitoring site by watershed charateristics.
 
-|Watershed Characteristic                    | Code                |
+|Watershed Characteristic                    | Code               |
 |:----------------------------:              |:-----------------: |
-| Drainage Area (mi<sup>2</sup>)                        | Drainage_area_mi2  |
+| Drainage Area (mi<sup>2</sup>)             | Drainage_area_mi2  |
 | Mean Basin Elevation (ft)                  | Mean_Basin_Elev_ft |
 | Percentage Forest Area (%)                 | Perc_Forest        |
 | Percentage Developed Area (%)              | Perc_Develop       |
@@ -62,10 +62,14 @@ To determine how LULC affects the predictive performance of streamflow models, t
 Start the Streamflow_Evaluator by loading it into your interactive python environment (tested and developed with Jupyter notebooks).  
 ![starting_SE](https://user-images.githubusercontent.com/33735397/205772795-ca0f9d6d-37df-46b4-9631-3d40713d2ebe.PNG)
 
+_The Streamflow_Evaluator requires the LULC_Streamflow.py python script._
+
 Initiate the Streamflow_Evaluator by inputting a start date, end date, state, model, and classification (see above table).
 Dependent on data availability, current NWIS is from 1980 - present where available and NWM v2.1 retrospective is from 1980-2020.
 
 ![initiateSE_LULC](https://user-images.githubusercontent.com/33735397/205773388-befae3c2-9c48-43ca-ba0c-9d847299dc80.PNG)
+
+_Inititate the Streamflow_Evaluator by inputting a start date, end date, state, model, and classification_
 
 Loading and running the LULC_Eval class within the Streamflow_Evaluator.
 ![LULC_Eval](https://user-images.githubusercontent.com/33735397/205773967-67f6a79b-6a1a-47f5-93a0-3ddc0161dfa5.PNG)
@@ -95,8 +99,19 @@ The Map_Plot_Eval function requires the following inputs: temporal frequency, da
 
 
 ![LULC_mapping](https://user-images.githubusercontent.com/33735397/205775870-5efab8e2-57ce-4ecb-b6c1-012909ece220.PNG)
+
+
 _Running the Streamflow_Evaluator LULC_Eval class loads, processes, and visualizes model performance for the state, category, and size of interest_
 
+![LULC_mapping_highlight](https://user-images.githubusercontent.com/33735397/205776459-355507b4-2036-4eca-8bb3-fc88debbebef.PNG)
 
+_By clicking on a marker a popup of the modeled vs. observed performance at the inputted temporal frequency will appear_
+
+The Interactive_Model_Eval fuction takes in the temporal frequency of interest to support a more in-depth analysis, including error metrics.
+The underlying holoviews plotting package supports interactive engagement with the plot, such as zooming in on events and hovering to get exact values.
+
+![LULC_mapping_highlight](https://user-images.githubusercontent.com/33735397/205777510-be95bee3-3094-4d09-8486-42d95c4b0fb5.PNG)
+
+_The Streamflow_Evaluator supports an interactive engagement with model results _
 
 
