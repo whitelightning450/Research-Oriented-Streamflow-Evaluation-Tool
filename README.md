@@ -43,19 +43,19 @@ For all examples the model used is the NWM v2.1.
 ### State Land Use Landcover Evaluation
 To determine how LULC affects the predictive performance of streamflow models, the Streamflow_Evaluator uses StreamStats to categorize the watershed upstream of each USGS monitoring site by watershed charateristics.
 
-|Watershed Characteristic               | Code                |
-|:-----------------------:              |:-----------------: |
-| Drainage Area (mi2)                   | Drainage_area_mi2  |
-|Mean Basin Elevation (ft)              | Mean_Basin_Elev_ft |
-| Percentage Forest                     | Perc_Forest        |
-| Percentage Developed Area             | Perc_Develop       |
-| Percentage Impervious Area            | Perc_Imperv        |
-| Percentage Herbacious Area            | Perc_Herbace       |
-| Percentage of Slope Area > 30 degrees | Perc_Slop_30       |
-| Precipitation                         | Mean_Ann_Precip_in |
-| Mean Annual Low Flow                  | Ann_low_cfs        |
-| Mean Annual Flow                      | Ann_mean_cfs       |
-| Mean Annual High Flow                 | Ann_hi_cfs         | 
+|Watershed Characteristic                    | Code                |
+|:----------------------------:              |:-----------------: |
+| Drainage Area (mi<sup>2</sup>)                        | Drainage_area_mi2  |
+| Mean Basin Elevation (ft)                  | Mean_Basin_Elev_ft |
+| Percentage Forest Area (%)                 | Perc_Forest        |
+| Percentage Developed Area (%)              | Perc_Develop       |
+| Percentage Impervious Area (%)             | Perc_Imperv        |
+| Percentage Herbacious Area (%)             | Perc_Herbace       |
+| Percentage of Slope Area > 30 degrees (%)  | Perc_Slop_30       |
+| Precipitation (in)                         | Mean_Ann_Precip_in |
+| Mean Annual Low Flow (cfs)                 | Ann_low_cfs        |
+| Mean Annual Flow (cfs)                     | Ann_mean_cfs       |
+| Mean Annual High Flow (cfs)                | Ann_hi_cfs         | 
 
 
 
