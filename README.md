@@ -53,11 +53,10 @@ _Running the Streamflow_Evaluator LULC_Eval class loads, processes, and visualiz
 
 _By clicking on a marker a popup of the modeled vs. observed performance at the inputted temporal frequency will appear_
 
-The Interactive_Model_Eval fuction takes in the temporal frequency of interest to support a more in-depth analysis, including error metrics.
-The underlying holoviews plotting package supports interactive engagement with the plot, such as zooming in on events and hovering to get exact values.
-
 ![LULC_holoviews](https://user-images.githubusercontent.com/33735397/205777709-65a8e6d8-0d7a-42e5-81b3-819462cb6e6a.PNG)
 
 _The Streamflow_Evaluator supports an interactive engagement with model results_
 
 
+
+### Streamflow evaluation by Hydrologic Unit Code (HUC)
