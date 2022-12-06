@@ -40,7 +40,7 @@ Below is a list of required packages to operate the tool:
 Each streamflow evaluation method requires similar inputs, including a start date, end date, and model.
 For all examples the model used is the NWM v2.1. 
 
-### State Land Use Landcover Evaluation
+### State Land Use - Land Cover Evaluation
 To determine how LULC affects the predictive performance of streamflow models, the Streamflow_Evaluator uses StreamStats to categorize the watershed upstream of each USGS monitoring site by watershed charateristics.
 
 |Watershed Characteristic                    | Code                |
@@ -66,5 +66,37 @@ Initiate the Streamflow_Evaluator by inputting a start date, end date, state, mo
 Dependent on data availability, current NWIS is from 1980 - present where available and NWM v2.1 retrospective is from 1980-2020.
 
 ![initiateSE_LULC](https://user-images.githubusercontent.com/33735397/205773388-befae3c2-9c48-43ca-ba0c-9d847299dc80.PNG)
+
+Loading and running the LULC_Eval class within the Streamflow_Evaluator.
+![LULC_Eval](https://user-images.githubusercontent.com/33735397/205773967-67f6a79b-6a1a-47f5-93a0-3ddc0161dfa5.PNG)
+
+The function loads the repective state's StreamStats, locates necessary NWIS sites and colocated NHD reaches.
+Using the Jenks classification algorithm, the function categorizes the specified watershed charateristic into five catgories.
+For example:
+Categorical breaks for  Drainage_area_mi2 :  [0.00139, 385.86, 1036.1, 2065.05, 3300.0, 5613.41]
+
+The Map_Plot_Eval is the preliminary evaluation function, loading data, processing to the temporal frequency of interest, and incorporating interactive mapping capabilities to visulize model performance through marker color coding to the calculated King Gupta Efficiency Coefficient (KGE) and by clicking on marker, a popup of the modeled and observed the respective site.
+The Map_Plot_Eval function requires the following inputs: temporal frequency, dataframe, dataframe name.
+
+|Category     | Dataframe code      |
+| :----------:|:-------------------:|
+| Very Small  | State_Eval.df_vsmall|
+| Small       | State_Eval.df_small |
+| Medium      | State_Eval.df_medium|
+| Large       | State_Eval.df_large |
+| Very Large  | State_Eval.df_vlarge|
+
+|Temporal Frequency | Code     |
+|:-----------------:| :-------:|
+|Daily              | 'D'      |
+|Monthly            | 'M'      |
+|Quarterly          | 'Q'      |
+|Annual             | 'A'      |
+
+
+![LULC_mapping](https://user-images.githubusercontent.com/33735397/205775870-5efab8e2-57ce-4ecb-b6c1-012909ece220.PNG)
+_Running the Streamflow_Evaluator LULC_Eval class loads, processes, and visualizes model performance for the state, category, and size of interest_
+
+
 
 
