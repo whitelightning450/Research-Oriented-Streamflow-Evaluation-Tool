@@ -1,5 +1,4 @@
 # Streamflow_Evaluator
-![GitHub](https://img.shields.io/github/license/whitelightning450/Streamflow_Evaluator?style=flat-square)
 
 ![GitHub](https://img.shields.io/github/license/whitelightning450/Streamflow_Evaluator?logo=GitHub&style=plastic)
 ![GitHub top language](https://img.shields.io/github/languages/top/whitelightning450/Streamflow_Evaluator?style=plastic)
