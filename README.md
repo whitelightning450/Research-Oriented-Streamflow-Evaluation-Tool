@@ -65,3 +65,33 @@ _The Streamflow_Evaluator supports an interactive engagement with model results_
 
 
 ### Streamflow evaluation by Hydrologic Unit Code (HUC)
+The HUC_Eval class allows the user to evaluate modeled streamflow with observed in situ NWIS monitoring sites  for a watershed(s) of interest. 
+The user can input multiple watersheds (e.g., Great Salt lake: ['1601', '1602'])
+The user must enter a start date, end date, watersheds and model to compare (NWM v2.1 is set up).
+NWM retrospective data spans from 1980 - 2020, USGS/NWIS data is location dependent.
+
+![LULC_HUC_GSL](https://user-images.githubusercontent.com/33735397/206265320-7c640b40-830e-41ed-8e3f-67a2b20984c5.PNG)
+
+_The HUC_Eval class loads all USGS and colocated modeled NHD reaches for evaluation.
+Color coding of the markers allows for quick identification of poor and well performing reaches and clicking on the markers will put up a modeled vs. observed graph at the desired temporal resolution._
+
+![LULC_holoviews_HUCEval](https://user-images.githubusercontent.com/33735397/206265779-5417343f-ed40-4704-b8bc-12ada2672259.PNG)
+
+_Similar to the State_Eval class, the HUC_Eval class supports a more in-dpeth graphical analysis of the modeled vs. observed using the holoviews package_
+
+
+The Reach_Eval class allows the user to evaluate modeled streamflow with selected NWIS monitoring sites of interest. 
+The user can input multiple USGS sites (e.g., ['02378780', '02339495', '02342500'])
+Similar to the other classes, enter a start date, end date, and model to compare (NWM v2.1 is set up).
+NWM retrospective data spans from 1980 - 2020, USGS/NWIS data is location dependent
+
+
+![LULC_ReachEval_map](https://user-images.githubusercontent.com/33735397/206266617-f06c9836-0193-4f6f-94f9-11982272d34d.PNG)
+
+_The Reach_Eval class quickly loads and maps the selected USGS streamflow monitoring locations, along with the colocated model predictions of NHD reaches.
+The color code of the marker indicates the model performance at the respective USGS monitoring station site, and by clicking on a marker, the interactive map produces a graph at the desired temporal resolution._
+
+
+![LULC_holoviews_Reach_Eval](https://user-images.githubusercontent.com/33735397/206267196-749bb94d-aa57-4d24-9b4e-97e7567e1fc0.PNG)
+
+_Similar to the State_Eval and HUC_Eval classes, the Reach_Eval class supports a more in-dpeth graphical analysis of the modeled vs. observed using the holoviews package_
