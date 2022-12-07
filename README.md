@@ -1,4 +1,18 @@
 # Streamflow_Evaluator
+![GitHub](https://img.shields.io/github/license/whitelightning450/Streamflow_Evaluator?style=flat-square)
+
+![GitHub](https://img.shields.io/github/license/whitelightning450/Streamflow_Evaluator?logo=GitHub&style=plastic)
+![GitHub top language](https://img.shields.io/github/languages/top/whitelightning450/Streamflow_Evaluatorl?logo=Jupyter&style=plastic)
+![GitHub repo size](https://img.shields.io/github/repo-size/whitelightning450/Streamflow_Evaluator?logo=Github&style=plastic)
+![GitHub language count](https://img.shields.io/github/languages/count/whitelightning450/Streamflow_Evaluator?style=plastic)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/whitelightning450/Streamflow_Evaluator?style=plastic)
+![GitHub Pipenv locked Python version](https://img.shields.io/github/pipenv/locked/python-version/whitelightning450/Streamflow_Evaluator?style=plastic)
+![GitHub branch checks state](https://img.shields.io/github/checks-status/whitelightning450/Machine-Learning-Water-Systems-Model/main?style=plastic)
+![GitHub issues](https://img.shields.io/github/issues/whitelightning450/Streamflow_Evaluator?style=plastic)
+![GitHub milestones](https://img.shields.io/github/milestones/closed/whitelightning450/Streamflow_Evaluator?style=plastic)
+![GitHub milestones](https://img.shields.io/github/milestones/open/whitelightning450/Streamflow_Evaluator?style=plastic)
+![GitHub closed issues](https://img.shields.io/github/issues-closed/whitelightning450/Streamflow_Evaluator?style=plastic)
+
 The streamflow evaluator compares modeled streamflow to in situ USGS monitoring sites, with interactive visualizations supporting an in-depth analysis.
 
 ## Application Overview
