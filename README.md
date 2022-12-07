@@ -2,7 +2,7 @@
 ![GitHub](https://img.shields.io/github/license/whitelightning450/Streamflow_Evaluator?style=flat-square)
 
 ![GitHub](https://img.shields.io/github/license/whitelightning450/Streamflow_Evaluator?logo=GitHub&style=plastic)
-![GitHub top language](https://img.shields.io/github/languages/top/whitelightning450/Streamflow_Evaluatorl?logo=Jupyter&style=plastic)
+![GitHub top language](https://img.shields.io/github/languages/top/whitelightning450/Streamflow_Evaluator?style=plastic)
 ![GitHub repo size](https://img.shields.io/github/repo-size/whitelightning450/Streamflow_Evaluator?logo=Github&style=plastic)
 ![GitHub language count](https://img.shields.io/github/languages/count/whitelightning450/Streamflow_Evaluator?style=plastic)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/whitelightning450/Streamflow_Evaluator?style=plastic)
