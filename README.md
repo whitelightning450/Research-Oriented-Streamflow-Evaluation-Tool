@@ -31,7 +31,7 @@ By using the Streamflow_Evaluator tool, researchers can identify locations where
 The Streamflow_Evaluator requires access to USGS/NWIS and colocated model output data for comparision.
 While all data is publically available through the respective agencies, data download for analysis prevents timely model evaluation. 
 The Alabama Water Institute at the University of Alabama hosts NWM v2.1 for all colocated USGS monitoring stations, and with the package capable of accessing the observed and predicted data, the package supports a fast and repeatable tool for evaluating modeled streamflow performance.
-Data access protocols will be provided through Google Cloud Services.
+We currently provide cloud hosted data via Box, please contact us for access.
 
 ## Dependencies (versions, environments)
 Python: Version 3.8 or later
