@@ -95,7 +95,7 @@ Color coding of the markers allows for quick identification of poor and well per
 
 _Similar to the State_Eval class, the HUC_Eval class supports a more in-dpeth graphical analysis of the modeled vs. observed using the holoviews package_
 
-### Modeled Streamflow Evaluation by USGS Site Id
+### Modeled Streamflow Evaluation - NHD - USGS Streamflow Evaluation
 
 The Reach_Eval class allows the user to evaluate modeled streamflow with selected NWIS monitoring sites of interest. 
 The user can input multiple USGS sites (e.g., ['02378780', '02339495', '02342500'])
