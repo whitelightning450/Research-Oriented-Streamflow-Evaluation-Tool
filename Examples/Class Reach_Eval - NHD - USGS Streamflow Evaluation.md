@@ -9,7 +9,7 @@ NWM retrospective data spans from 1980 - 2020, USGS/NWIS data is location depend
 
 
 Start the Streamflow_Evaluator by loading it into your interactive python environment (tested and developed with Jupyter notebooks).  
-![starting_SE](https://user-images.githubusercontent.com/33735397/205772795-ca0f9d6d-37df-46b4-9631-3d40713d2ebe.PNG)
+![initiate_Streamflow_Evaluator](https://user-images.githubusercontent.com/33735397/206514476-f1fdb5e7-8119-489a-9f1a-9b44a01dcc66.PNG)
 
 _The Streamflow_Evaluator requires the Streamflow_Evaluator.py python script._
 
