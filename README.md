@@ -61,7 +61,7 @@ There are currently three different evaluation classes, each providing the user 
 
 For all examples the prediction are from the NWM v2.1 retrospective. 
 
-### State Land Use - Land Cover Evaluation
+### Modeled Streamflow Evaluation by StreamStats
 To determine how LULC affects the predictive performance of streamflow models, the Streamflow_Evaluator uses StreamStats to categorize the watershed upstream of each USGS monitoring site by watershed charateristics.
 Please see the State Land Use - Land Cover Evaluation.md readme to use the tool.
 
@@ -80,7 +80,7 @@ _The Streamflow_Evaluator supports an interactive engagement with model results_
 
 
 
-### Streamflow evaluation by Hydrologic Unit Code (HUC)
+### Modeled Streamflow Evaluation by Hydrologic Unit Code (HUC)
 The HUC_Eval class allows the user to evaluate modeled streamflow with observed in situ NWIS monitoring sites  for a watershed(s) of interest. 
 The user can input multiple watersheds (e.g., Great Salt lake: ['1601', '1602'])
 The user must enter a start date, end date, watersheds and model to compare (NWM v2.1 is set up).
@@ -95,6 +95,7 @@ Color coding of the markers allows for quick identification of poor and well per
 
 _Similar to the State_Eval class, the HUC_Eval class supports a more in-dpeth graphical analysis of the modeled vs. observed using the holoviews package_
 
+### Modeled Streamflow Evaluation by USGS Site Id
 
 The Reach_Eval class allows the user to evaluate modeled streamflow with selected NWIS monitoring sites of interest. 
 The user can input multiple USGS sites (e.g., ['02378780', '02339495', '02342500'])
