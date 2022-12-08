@@ -1,7 +1,7 @@
 ![LULC_Eval_top_image](https://user-images.githubusercontent.com/33735397/206321617-354fbbe1-3a61-4be2-8234-daf95fd4d926.PNG)
 
 
-# State Land Use - Land Cover Evaluation
+# Modeled Streamflow Evaluation by StreamStats
 To determine how LULC affects the predictive performance of streamflow models, the Streamflow_Evaluator uses StreamStats to categorize the watershed upstream of each USGS monitoring site by watershed charateristics.
 The LULC_Eval class allows the user to evaluate modeled streamflow with observed in situ NWIS monitoring sites.
 Please enter a start date, end date, frequency, state of interest, and model to compare (NWM v2.1 is set up).
