@@ -1,7 +1,7 @@
 ![HUC_Eval_top](https://user-images.githubusercontent.com/33735397/206322410-ea0e210c-c805-4599-ad6b-704c76ba42ce.PNG)
 
 
-# HUC Watershed Streamflow Evaluation
+# Modeled Streamflow Evaluation by Hydrologic Unit Code (HUC)
 The HUC_Eval class allows the user to evaluate modeled streamflow with observed in situ NWIS monitoring sites 
 for a watershed(s) of interest. 
 The user can input multiple watersheds (e.g., Great Salt lake: ['1601', '1602']).
