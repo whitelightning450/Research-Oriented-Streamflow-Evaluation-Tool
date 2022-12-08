@@ -13,14 +13,14 @@ https://apps.nationalmap.gov/downloader/ to locate HUC of interest
 
 
 Start the Streamflow_Evaluator by loading it into your interactive python environment (tested and developed with Jupyter notebooks).  
-![starting_SE](https://user-images.githubusercontent.com/33735397/205772795-ca0f9d6d-37df-46b4-9631-3d40713d2ebe.PNG)
+![initiate_Streamflow_Evaluator](https://user-images.githubusercontent.com/33735397/206514204-4d981e4c-bb22-4274-b0d4-3e46393bc376.PNG)
 
 _The Streamflow_Evaluator requires the Streamflow_Evaluator.py python script._
 
 Initiate the Streamflow_Evaluator by inputting a start date, end date, state, model, and classification (see above table).
 Dependent on data availability, current NWIS is from 1980 - present where available and NWM v2.1 retrospective is from 1980-2020.
 
-![Huc_Eval_initiate](https://user-images.githubusercontent.com/33735397/206317238-34aae778-6c08-41fd-8c92-3d52c3b1a22c.PNG)
+![initiate_Streamflow_Evaluator_HUC_class](https://user-images.githubusercontent.com/33735397/206514251-f9c5ce96-de11-479c-9e4b-0fb6c6b69ecd.PNG)
 
 _Inititate the Streamflow_Evaluator by inputting a start date, end date, state, model, and classification.
 Example using the Great Salt Lake watershed, HUC id's 1601 and 1602._
