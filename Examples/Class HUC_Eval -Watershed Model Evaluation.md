@@ -25,7 +25,7 @@ Dependent on data availability, current NWIS is from 1980 - present where availa
 _Inititate the Streamflow_Evaluator by inputting a start date, end date, state, model, and classification.
 Example using the Great Salt Lake watershed, HUC id's 1601 and 1602._
 
-Loading and running the LULC_Eval class within the Streamflow_Evaluator.
+Loading and running the HUC_Eval class within the Streamflow_Evaluator.
 
 ![HUC_Eval get data](https://user-images.githubusercontent.com/33735397/206317420-c484ef33-fb43-4305-a0a1-0bdad0af3031.PNG)
 
