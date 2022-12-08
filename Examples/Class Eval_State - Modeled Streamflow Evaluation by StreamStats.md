@@ -25,7 +25,7 @@ Select the below classifications to evaluate model performance.
 
 
 Start the Streamflow_Evaluator by loading it into your interactive python environment (tested and developed with Jupyter notebooks).  
-![starting_SE](https://user-images.githubusercontent.com/33735397/205772795-ca0f9d6d-37df-46b4-9631-3d40713d2ebe.PNG)
+![initiate_Streamflow_Evaluator](https://user-images.githubusercontent.com/33735397/206513716-2182975f-53af-4860-b502-e2ce38a74ca2.PNG)
 
 _The Streamflow_Evaluator requires the Streamflow_Evaluator.py python script._
 
@@ -37,8 +37,9 @@ Dependent on data availability, current NWIS is from 1980 - present where availa
 _Inititate the Streamflow_Evaluator by inputting a start date, end date, state, model, and classification.
 For the purpose of the example, we are looking at the state of Washington (wa)_
 
-Loading and running the LULC_Eval class within the Streamflow_Evaluator.
-![LULC_Eval](https://user-images.githubusercontent.com/33735397/205773967-67f6a79b-6a1a-47f5-93a0-3ddc0161dfa5.PNG)
+![initiate_Streamflow_Evaluator_LULC_class](https://user-images.githubusercontent.com/33735397/206513777-e16968fe-e280-427d-ab3e-91921cdc8a38.PNG)
+
+_Loading and running the LULC_Eval class within the Streamflow_Evaluator._
 
 The function loads the repective state's StreamStats, locates necessary NWIS sites and colocated NHD reaches.
 Using the Jenks classification algorithm, the function categorizes the specified watershed charateristic into five catgories.
