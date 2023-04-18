@@ -57,6 +57,8 @@ from folium.plugins import StripePattern
 import io
 import swifter
 from geopy.geocoders import Nominatim
+from multiprocessing import Process
+
 geolocator = Nominatim(user_agent="geoapiExercises")
 
 
@@ -119,29 +121,29 @@ class LULC_Eval():
         self.NWIS_sites = gpd.GeoDataFrame(self.NWIS_sites, geometry=gpd.points_from_xy(self.NWIS_sites.dec_long_va, self.NWIS_sites.dec_lat_va))
         
 
-    def get_NWM_info(self):   
+    def get_NHD_Model_info(self):   
         print('Getting NHD reaches')
-       #Get NWM reach colocated with NWIS
+       #Get NHD reach colocated with NWIS
         self.site_id = self.NWIS_sites.NWIS_site_id
         
-        NWM_reaches = []
+        NHD_reaches = []
 
         for site in self.site_id:
             try:
-                NWM_NWIS_df = utils.crosswalk(usgs_site_codes=site)
-                NWM_segment = NWM_NWIS_df.nwm_feature_id.values[0]
-                NWM_reaches.append(NWM_segment)
+                NHD_NWIS_df = utils.crosswalk(usgs_site_codes=site)
+                NHD_segment = NHD_NWIS_df.nwm_feature_id.values[0]
+                NHD_reaches.append(NHD_segment)
 
             except:
-                NWM_segment = np.nan
-                NWM_reaches.append(NWM_segment)
-        self.NWIS_sites['NWM_reachid'] = NWM_reaches
+                NHD_segment = np.nan
+                NHD_reaches.append(NHD_segment)
+        self.NWIS_sites['NHD_reachid'] = NHD_reaches
         
         self.NWIS_sites = self.NWIS_sites.fillna(0.0)
         
-        self.NWIS_sites['NWM_reachid'] = self.NWIS_sites['NWM_reachid'].astype(int)
+        self.NWIS_sites['NHD_reachid'] = self.NWIS_sites['NHD_reachid'].astype(int)
         
-        self.NWIS_sites = self.NWIS_sites[self.NWIS_sites.NWM_reachid != 0]
+        self.NWIS_sites = self.NWIS_sites[self.NWIS_sites.NHD_reachid != 0]
         
         self.df = self.NWIS_sites.copy()
         
@@ -317,16 +319,6 @@ class LULC_Eval():
         self.category = category
         self.cat_breaks = self.category+'_breaks'
         
-        #self.df = self.NWIS_sites.copy()
-        
-        #self.df['NWM_reach_id'] = self.NWIS_sites['NWM_reachid']
-        
-        #adjust as nec for .py
-        #del self.df['NWIS_siteid']
-        #del self.df['Unnamed: 0']
-        
-        #self.df = self.df.dropna()
-        
         #remove rows with no value for category of interest
         self.df.drop(self.df[self.df[self.category]<0.00001].index, inplace = True)
             
@@ -375,7 +367,7 @@ class LULC_Eval():
                     endDT=self.endDT
                     )
 
-                #Get Daily mean for NWM comparision
+                #Get Daily mean for Model comparision
                 usgs_meanflow = pd.DataFrame(usgs_data.reset_index().groupby(pd.Grouper(key = 'value_time', freq = self.freq))['value'].mean())
                 usgs_meanflow = usgs_meanflow.reset_index()
 
@@ -403,7 +395,7 @@ class LULC_Eval():
                     endDT=self.endDT
                     )
 
-                #Get Daily mean for NWM comparision
+                #Get Daily mean for Model comparision
                 usgs_meanflow = pd.DataFrame(usgs_data.reset_index().groupby(pd.Grouper(key = 'value_time', freq = self.freq))['value'].mean())
                 usgs_meanflow = usgs_meanflow.reset_index()
 
@@ -437,7 +429,7 @@ class LULC_Eval():
                 endDT=self.endDT
                 )
 
-            #Get Daily mean for NWM comparision
+            #Get Daily mean for Model comparision
             usgs_meanflow = pd.DataFrame(usgs_data.reset_index().groupby(pd.Grouper(key = 'value_time', freq = self.freq))['value'].mean())
             usgs_meanflow = usgs_meanflow.reset_index()
 
@@ -465,7 +457,7 @@ class LULC_Eval():
                 endDT=self.endDT
                 )
 
-            #Get Daily mean for NWM comparision
+            #Get Daily mean for Model comparision
             usgs_meanflow = pd.DataFrame(usgs_data.reset_index().groupby(pd.Grouper(key = 'value_time', freq = self.freq))['value'].mean())
             usgs_meanflow = usgs_meanflow.reset_index()
 
@@ -486,22 +478,23 @@ class LULC_Eval():
 
             
             
-    def NWM_retrieve(self, df):
+    def Model_retrieve(self, df):
         
         # Retrieve data from a number of sites
-        print('Retrieving NWM reaches ', list(df.NWM_reachid), ' data')
-        self.comparison_reaches = list(df.NWM_reachid)
+        print('Retrieving model NHD reaches ', list(df.NHD_reachid), ' data')
+        self.comparison_reaches = list(df.NHD_reachid)
         
         pbar = ProgressBar()
         for site in pbar(self.comparison_reaches):
             print('Getting data for: ', site)
             nwm_predictions = data.get_nwm_data(site,  self.startDT,  self.endDT)
             #I think NWM outputs are in cms...
-            NWM_meanflow = nwm_predictions.resample(self.freq).mean()*self.cms_to_cfs
-            NWM_meanflow = NWM_meanflow.reset_index()
-            NWM_meanflow = NWM_meanflow.rename(columns={'time':'Datetime', 'value':'Obs_flow','feature_id':'NWM_segment', 'streamflow':'NWM_flow', 'velocity':'NWM_velocity'})
-            NWM_meanflow = NWM_meanflow.set_index('Datetime')
-            NWM_meanflow.to_hdf(cwd+'/Data/NWM/NWM_segments_'+self.state+'.h5', key = site)
+            NHD_meanflow = nwm_predictions.resample(self.freq).mean()*self.cms_to_cfs
+            NHD_meanflow = NHD_meanflow.reset_index()
+            NHD_meanflow = NHD_meanflow.rename(columns={'time':'Datetime', 'value':'Obs_flow','feature_id':'NHD_segment', 'streamflow':'NHD_flow', 'velocity':'NHD_velocity'})
+            NHD_meanflow = NHD_meanflow.set_index('Datetime')
+            filepath = self.cwd+'/Data/'+self.model+'/NHD_segments_'+self.state+'.h5',
+            NHD_meanflow.to_hdf(filepath, key = site)
            
             
             
@@ -509,14 +502,15 @@ class LULC_Eval():
     def get_single_NWM_reach(self, site):
         
         # Retrieve data from a number of sites
-        print('Retrieving NWM reach: ', site, ' data')
+        print('Retrieving NHD Model reach: ', site, ' data')
         nwm_predictions = data.get_nwm_data(site,  self.startDT,  self.endDT)
         #I think NWM outputs are in cms...
-        NWM_meanflow = nwm_predictions.resample(self.freq).mean()*self.cms_to_cfs
-        NWM_meanflow = NWM_meanflow.reset_index()
-        NWM_meanflow = NWM_meanflow.rename(columns={'time':'Datetime', 'value':'Obs_flow','feature_id':'NWM_segment', 'streamflow':'NWM_flow', 'velocity':'NWM_velocity'})
-        NWM_meanflow = NWM_meanflow.set_index('Datetime')       
-        NWM_meanflow.to_hdf(cwd+'/Data/NWM/NWM_segments_'+self.state+'.h5', key = site)
+        NHD_meanflow = nwm_predictions.resample(self.freq).mean()*self.cms_to_cfs
+        NHD_meanflow = NHD_meanflow.reset_index()
+        NHD_meanflow = NHD_meanflow.rename(columns={'time':'Datetime', 'value':'Obs_flow','feature_id':'NHD_segment', 'streamflow':'NHD_flow', 'velocity':'NHD_velocity'})
+        NHD_meanflow = NHD_meanflow.set_index('Datetime')       
+        filepath = self.cwd+'/Data/'+self.model+'/NHD_segments_'+self.state+'.h5',
+        NHD_meanflow.to_hdf(filepath, key = site)
             
             
             
@@ -531,48 +525,38 @@ class LULC_Eval():
         return date_list      
 
     def prepare_comparison(self, df):
-        #print('Getting NWM and NWIS data')
-        #display(df)
-        self.comparison_reaches = list(df.NWM_reachid)
+        
+        self.comparison_reaches = list(df.NHD_reachid)
         self.NWIS_sites = list(df.NWIS_site_id)
         self.dates = self.date_range_list(pd.to_datetime(self.startDT), pd.to_datetime(self.endDT))
         
         self.NWIS_data = pd.DataFrame(columns = self.NWIS_sites)
         self.Mod_data = pd.DataFrame(columns = self.comparison_reaches)
         
-       # self.Mod_data['datetime'] = dates
-        #self.Mod_data.set_index('datetime', inplace = True)
-        
-        #self.NWIS_data['datetime'] = dates
-        #self.NWIS_data.set_index('datetime', inplace = True)
-        
-         #Add in port to new/other model formulation outputs 
-        if self.model == 'NWM':
+        print('Getting ', self.model, ' data')
+        pbar = ProgressBar()
+        for site in pbar(self.comparison_reaches):
+            filepath = self.cwd+'/Data/'+self.model+'/NHD_segments_'+self.state+'.h5'
 
-            #for NWM, add similar workflow to get non-NWM data
-            print('Getting ', self.model, ' data')
-            pbar = ProgressBar()
-            for site in pbar(self.comparison_reaches):
-              #  print('Getting data for NWM: ', site)
-                
-                try:
+            try:
 
-                    format = '%Y-%m-%d %H:%M:%S'
-                    Mod_flow = pd.read_hdf(self.cwd+'/Data/NWM/NWM_segments_'+self.state+'.h5', key = str(site))
-                    Mod_flow['time'] ='12:00:00' 
-                    Mod_flow['Datetime'] = pd.to_datetime(Mod_flow['Datetime']+ ' ' + Mod_flow['time'], format = format)
-                    Mod_flow.set_index('Datetime', inplace = True)
-                    Mod_flow = Mod_flow.loc[self.startDT:self.endDT]
+                format = '%Y-%m-%d %H:%M:%S'
+                Mod_flow = pd.read_hdf(filepath, key = str(site))
+                Mod_flow['time'] ='12:00:00' 
+                Mod_flow['Datetime'] = pd.to_datetime(Mod_flow['Datetime']+ ' ' + Mod_flow['time'], format = format)
+                Mod_flow.set_index('Datetime', inplace = True)
+                Mod_flow = Mod_flow.loc[self.startDT:self.endDT]
+                cols = Mod_flow.columns
 
-                    flow = self.model + '_flow'
+                flow = self.model + '_flow'
 
 
-                    self.Mod_data[site] = Mod_flow[flow]
+                self.Mod_data[site] = Mod_flow[flow]
 
-                except:
-                    print('NWM site ', site, ' not in database, skipping')
-                    #remove item from list
-                    self.comparison_reaches.remove(site)
+            except:
+                print('Site: ', site, ' not in database, skipping')
+                #remove item from list
+                self.comparison_reaches.remove(site)
 
 
 
@@ -667,7 +651,8 @@ class LULC_Eval():
             ax[i,1].scatter(self.NWIS_data[site], self.Mod_data[reach], color = 'black')
             ax[i,1].plot([min_flow, max_flow],[min_flow, max_flow], ls = '--', c='red')
             ax[i,1].set_xlabel('Observed USGS (cfs)')
-            ax[i,1].set_ylabel('Predicted NWM (cfs)')
+            ylab = self.model+ ' Predictions (cfs)'
+            ax[i,1].set_ylabel(ylab)
 
         #calculate some performance metrics
         model_cfs = self.model+'_flow_cfs'
@@ -688,7 +673,7 @@ class LULC_Eval():
         
         
         
-    def Interactive_Model_Eval(self, freq):
+    def Interactive_Model_Eval(self, freq, supply):
         self.freq = freq
 
         if self.freq == 'D':
@@ -710,25 +695,193 @@ class LULC_Eval():
             #Modeled
             self.Mod_data_resampled = self.Mod_data.copy()*self.cfsday_AFday
             self.Mod_data_resampled = self.Mod_data_resampled.resample(self.freq).sum()
+            
+        if supply == True:
+            #NWIS
+            #Get Columns names
+            columns = self.NWIS_data_resampled.columns
 
-        num_figs = len(self.comparison_reaches)
-        #self.sites.reset_index(inplace = True, drop = True)
+            #set up cumulative monthly values
+            self.NWIS_data_resampled['Year'] = self.NWIS_data_resampled.index.year
+
+            self.NWIS_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.NWIS_CumSum[site] = self.NWIS_data_resampled.groupby(['Year'])[site].cumsum()
+
+            #Model
+            #Get Columns names
+            columns = self.Mod_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.Mod_data_resampled['Year'] = self.Mod_data_resampled.index.year
+
+            self.Mod_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.Mod_CumSum[site] = self.Mod_data_resampled.groupby(['Year'])[site].cumsum()
+                
+            #set the Mod and NWIS resampled data == to the CumSum Df's
+            self.NWIS_data_resampled = self.NWIS_CumSum
+            self.Mod_data_resampled =self.Mod_CumSum
+
+        RMSE = []
+        MAXERROR = []
+        MAPE = []
+        KGE = []
+
+        for row in np.arange(0,len(self.df),1):
+            #Get NWIS id
+            NWISid = self.df['NWIS_site_id'][row]
+            #Get Model reach id
+            reachid = 'NHD_reachid'
+            modid = self.df[reachid][row]
+            #get observed and prediction data
+            obs = self.NWIS_data_resampled[NWISid]
+            mod = self.Mod_data_resampled[modid]
+            
+            #remove na values or 0
+            df = pd.DataFrame()
+            df['obs'] = obs
+            df['mod'] = mod.astype('float64')
+            df['error'] = df['obs'] - df['mod']
+            df['P_error'] = abs(df['error']/df['obs'])*100
+            #drop inf values
+            df.replace([np.inf, -np.inf], np.nan, inplace = True)
+            df.dropna(inplace = True)
+            
+            obs = df['obs']
+            mod = df['mod']
+
+            #calculate scoring
+            rmse = round(mean_squared_error(obs, mod, squared=False))
+            maxerror = round(max_error(obs, mod))
+            mape = df.P_error.mean()
+            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+
+            RMSE.append(rmse)
+            MAXERROR.append(maxerror)
+            MAPE.append(mape)
+            KGE.append(kge[0])
+
+        #Connect model evaluation to a DF, add in relevant information concerning LULC
+        Eval = pd.DataFrame()
+        Eval['NWIS_site_id'] = self.df['NWIS_site_id']
+        Eval[reachid] = self.df[reachid]
+        Eval['Location'] = self.df['NWIS_sitename']
+        Eval['RMSE'] = RMSE
+        Eval['MaxError'] = MAXERROR
+        Eval['MAPE'] = MAPE
+        Eval['KGE'] = KGE
+        Eval['Drainage_area_mi2'] = self.df['Drainage_area_mi2']
+        Eval['Mean_Basin_Elev_ft'] = self.df['Mean_Basin_Elev_ft']
+        Eval['Perc_Forest'] = self.df['Perc_Forest']
+        Eval['Perc_Imperv'] = self.df['Perc_Imperv']
+        Eval['Perc_Herbace'] = self.df['Perc_Herbace']
+        Eval['Mean_Ann_Precip_in'] = self.df['Mean_Ann_Precip_in']
+        Eval['Ann_low_cfs'] = self.df['Ann_low_cfs']
+        Eval['Ann_mean_cfs'] = self.df['Ann_mean_cfs']
+        Eval['Ann_hi_cfs'] = self.df['Ann_hi_cfs']
+        Eval['Location'] = self.df['NWIS_sitename']
+        Eval[self.category] = self.df[self.category]
+
+        #sort dataframe and reindex
+        self.Eval = Eval.sort_values('KGE', ascending = False).reset_index(drop = True)    
+        #display evaluation DF
+        display(self.Eval)
+        
+        #plot the model performance vs LULC to identify any relationships indicating where/why model performance
+        #does well or poor
+        #make all very negative KGE values -1
+        self.Eval['KGE'][self.Eval['KGE'] < -1] = -1
+
+        fig, ax = plt.subplots(3, 3, figsize = (11,11))
+        fig.suptitle('Watershed Charcteristics vs. Model Performance', fontsize = 16)
+
+        ax1 = ['Drainage_area_mi2', 'Mean_Basin_Elev_ft', 'Perc_Forest']
+        for var in np.arange(0,len(ax1),1):
+            variable = ax1[var]
+             #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[0,var].scatter(x = x, y = y)
+            ax[0,var].set_ylabel(ax1[var])
+             #add trendline
+            #calculate equation for trendline
+            try:
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[0,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+        ax2 = ['Perc_Imperv', 'Perc_Herbace', 'Mean_Ann_Precip_in']
+        for var in np.arange(0,len(ax2),1):
+            variable = ax2[var]
+             #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[1,var].scatter(x = x, y = y)
+            ax[1,var].set_ylabel(ax2[var])
+            #add trendline
+            #calculate equation for trendline
+            try:
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[1,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+        ax3 = ['Ann_low_cfs', 'Ann_mean_cfs', 'Ann_hi_cfs']
+        for var in np.arange(0,len(ax3),1):
+            variable = ax3[var]
+            #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[2,var].scatter(x = x, y = y)
+            ax[2,var].set_xlabel('Model Performance (KGE)')
+            ax[2,var].set_ylabel(ax3[var])
+             #add trendline
+            #calculate equation for trendline
+            try:
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[2,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+
+        plt.tight_layout()
+        plt.show()
+        
+        num_figs = len(self.Eval)
         for i in np.arange(0,num_figs,1):
+            
 
-            reach = self.comparison_reaches[i]
-            site = self.NWIS_sites[i]
+            reach = self.Eval[reachid][i]
+            site = self.Eval['NWIS_site_id'][i]
             #print(site, reach)
  
-            sitename = self.df.NWIS_sitename[i]
-            sitestat = str(self.df[self.category][i])
+            sitename = self.Eval.Location[i]
+            sitestat = str(self.Eval[self.category][i])
 
-            #plot_title = 'Performance of NWM predictions related to: ' + self.category +  '\n' + sitename + '\n'+ self.category +': ' + sitestat + ', classified as: '+ self.size
-
-            plot_title = 'Performance of NWM predictions related to: ' + self.category +  '\n' + sitename + '\n'+ self.category +': ' + sitestat + ', classified as: '+ self.size
+            plot_title = 'Performance of ' + self.model +' predictions related to: ' + self.category +  '\n' + sitename + '\n'+ self.category +': ' + sitestat + ', classified as: '+ self.size
 
 
             NWIS_site_lab = 'USGS: ' + str(site)
-            Mod_reach_lab = self.model + ': ' + str(reach)
+            Mod_reach_lab = self.model + ': NHD ' + str(reach)
 
             Eval_cols = [NWIS_site_lab, Mod_reach_lab]
 
@@ -748,12 +901,29 @@ class LULC_Eval():
                 Eval_df = Eval_df.reset_index()
                 Eval_df['Datetime'] = pd.to_datetime(Eval_df['Datetime'])
                 Eval_df.set_index('Datetime', inplace = True, drop = True)
+                
+                #get observed and prediction data
+                obs = Eval_df[NWIS_site_lab]
+                mod = Eval_df[Mod_reach_lab]
+
+                #remove na values or 0
+                df = pd.DataFrame()
+                df['obs'] = obs
+                df['mod'] = mod.astype('float64')
+                df['error'] = df['obs'] - df['mod']
+                df['P_error'] = abs(df['error']/df['obs'])*100
+                #drop inf values
+                df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                df.dropna(inplace = True)
+
+                obs = df['obs']
+                mod = df['mod']
 
                 #calculate scoring
-                rmse = round(mean_squared_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab], squared=False))
-                maxerror = round(max_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]))
-                MAPE = round(mean_absolute_percentage_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab])*100)
-                kge, r, alpha, beta = he.evaluator(he.kge, Eval_df[Mod_reach_lab].astype('float32'), Eval_df[NWIS_site_lab].astype('float32'))
+                rmse = round(mean_squared_error(obs, mod, squared=False))
+                maxerror = round(max_error(obs, mod))
+                MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
+                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
                 
                 #set limit to MAPE error
                 if MAPE > 1000:
@@ -838,7 +1008,7 @@ class LULC_Eval():
         
         
         #Map locations and scoring of sites
-    def Map_Plot_Eval(self, freq, df, size):
+    def Map_Plot_Eval(self, freq, df, size, supply):
         self.freq = freq
         self.df = df
         self.size = size
@@ -868,9 +1038,38 @@ class LULC_Eval():
             #Modeled
             self.Mod_data_resampled = self.Mod_data.copy()*self.cfsday_AFday
             self.Mod_data_resampled = self.Mod_data_resampled.resample(self.freq).sum()
+            
+        if supply == True:
+            #NWIS
+            #Get Columns names
+            columns = self.NWIS_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.NWIS_data_resampled['Year'] = self.NWIS_data_resampled.index.year
+
+            self.NWIS_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.NWIS_CumSum[site] = self.NWIS_data_resampled.groupby(['Year'])[site].cumsum()
+
+            #Model
+            #Get Columns names
+            columns = self.Mod_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.Mod_data_resampled['Year'] = self.Mod_data_resampled.index.year
+
+            self.Mod_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.Mod_CumSum[site] = self.Mod_data_resampled.groupby(['Year'])[site].cumsum()
+                
+            #set the Mod and NWIS resampled data == to the CumSum Df's
+            self.NWIS_data_resampled = self.NWIS_CumSum
+            self.Mod_data_resampled =self.Mod_CumSum
 
         print('Plotting monitoring station locations')
-        cols =  ['NWIS_site_id', 'NWIS_sitename', 'NWM_reachid', 'dec_lat_va', 'dec_long_va', 'geometry']
+        cols =  ['NWIS_site_id', 'NWIS_sitename', 'NHD_reachid', 'dec_lat_va', 'dec_long_va', 'geometry']
 
         self.df_map = self.df[cols]
         self.df_map.reset_index(inplace = True, drop = True) 
@@ -881,7 +1080,7 @@ class LULC_Eval():
         m = folium.Map(location=[centeroid.y[0], centeroid.x[0]], tiles = 'Stamen Terrain', zoom_start=8, 
                        control_scale=True)
         #add legend to map
-        colormap = cm.StepColormap(colors = ['r', 'orange',  'y', 'g'], vmin = -1, vmax = 1, index = [-1,-0.4,0,0.3,1])
+        colormap = cm.StepColormap(colors = ['darkred', 'r', 'orange', 'g'], vmin = -1, vmax = 1, index = [-1,-0.4,0,0.3,1])
         colormap.caption = 'Model Performance (KGE)'
         m.add_child(colormap)
 
@@ -898,29 +1097,49 @@ class LULC_Eval():
             USGSsite = 'USGS station id: ' + site
             site_name = self.df_map['NWIS_sitename'][i]
 
-            reach = self.df_map['NWM_reachid'][i]
-            NWMreach = 'NWM reach id: ' + str(reach)
+            reach = self.df_map['NHD_reachid'][i]
+            Modreach = self.model +' reach id: ' + str(reach)
             
-   
             #get modeled and observed information for each site
             df = pd.DataFrame(self.NWIS_data_resampled[site])
             df = df.rename(columns = {site: USGSsite})
-            df[NWMreach] = pd.DataFrame(self.Mod_data_resampled[reach])
+            df[Modreach] = pd.DataFrame(self.Mod_data_resampled[reach])
+            
+            #remove na values or 0, this evaluates the model only on NWIS observations
+            df_narem = pd.DataFrame()
+            df_narem['obs'] = self.NWIS_data_resampled[site].astype('float64')
+            df_narem['mod'] = self.Mod_data_resampled[reach].astype('float64')
+            df_narem['error'] = df_narem['obs'] - df_narem['mod']
+            df_narem['P_error'] = abs(df_narem['error']/df_narem['obs'])*100
+            #drop inf values
+            df_narem.replace([np.inf, -np.inf], np.nan, inplace = True)
+            df_narem.dropna(inplace = True)
+
+            obs = df_narem['obs']
+            mod = df_narem['mod']
+
+            #calculate scoring
+            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+   
+            #get modeled and observed information for each site
+            #df = pd.DataFrame(self.NWIS_data_resampled[site])
+            #df = df.rename(columns = {site: USGSsite})
+            #df[Modreach] = pd.DataFrame(self.Mod_data_resampled[reach])
             
             #set the color of marker by model performance
-            kge, r, alpha, beta = he.evaluator(he.kge, df[NWMreach].astype('float32'), df[USGSsite].astype('float32'))
+            #kge, r, alpha, beta = he.evaluator(he.kge, df[Modreach].astype('float32'), df[USGSsite].astype('float32'))
 
             if kge[0] > 0.30:
                 color = 'green'
 
             elif kge[0] > 0.0:
-                color = 'yellow'
-
-            elif kge[0] > -0.40:
                 color = 'orange'
 
-            else:
+            elif kge[0] > -0.40:
                 color = 'red'
+
+            else:
+                color = 'darkredred'
             
             
             title_size = 14
@@ -983,7 +1202,7 @@ class HUC_Eval():
         self.dates = date_list
 
     '''
-     Function for getting state id from lat long, needed to get NWIS and NWM streamflow information
+     Function for getting state id from lat long, needed to get NWIS and NHD streamflow information
      '''   
 
     def Lat_Long_to_state(self, row):
@@ -1008,7 +1227,8 @@ class HUC_Eval():
             self.HUC_cols = ['areaacres', 'areasqkm', 'states', self.HUC_length, 'name', 'shape_Length', 'shape_Area', 'geometry']
             self.HUC_Geo = gpd.GeoDataFrame(columns = self.HUC_cols, geometry = 'geometry')
             print(self.HUCid)
-
+            
+            t0 = time.time()
             for h in self.HUCid:
                 HU = h[:2]
                 HUCunit = 'WBDHU'+str(len(h))
@@ -1022,7 +1242,8 @@ class HUC_Eval():
                 HUC_G = HUC_G[HUC_G[self.HUC_length] == h] 
                 HUC_G = HUC_G[self.HUC_cols]
                 self.HUC_Geo = self.HUC_Geo.append(HUC_G)
-
+            t1 = time.time()
+            #print('HUC loading took ', t1-t0, 'seconds')
 
             #Load streamstats and covert to geodataframe
             Streamstats = pd.read_hdf(self.cwd+'/Data/StreamStats/StreamStats3.h5', 'streamstats')
@@ -1034,7 +1255,9 @@ class HUC_Eval():
             print('Finding NWIS monitoring stations within ', self.HUCid, ' watershed boundary')
             # Join StreamStats with HUC
             self.HUC_NWIS = self.StreamStats.sjoin(self.HUC_Geo, how = 'inner', predicate = 'intersects')
-
+            
+            #Somehow duplicate rows occuring, fix added
+            self.HUC_NWIS =  self.HUC_NWIS.drop_duplicates()
             print('Creating dataframe of NWIS stations within ', self.HUCid, ' watershed boundary')
             #takes rows with site name
             self.HUC_NWIS = self.HUC_NWIS[self.HUC_NWIS['NWIS_sitename'].notna()] 
@@ -1045,30 +1268,30 @@ class HUC_Eval():
             
         if len(self.HUC_NWIS) == 0:
             print('No monitoring stations in this HUC')
+    
 
-
-    def get_NWM_info(self):   
-        print('Getting collocated NWM reaches with NWIS monitoring locations')
-       #Get NWM reach colocated with NWIS       
-        NWM_reaches = []
+    def get_NHD_Model_info(self):   
+        print('Getting collocated ',  self.model, ' NHD reaches with NWIS monitoring locations')
+       #Get NHD reach colocated with NWIS       
+        NHD_reaches = []
 
         for site in self.HUC_NWIS.NWIS_site_id:
             try:
-                NWM_NWIS_df = utils.crosswalk(usgs_site_codes=site)
-                NWM_segment = NWM_NWIS_df.nwm_feature_id.values[0]
-                NWM_reaches.append(NWM_segment)
+                NHD_NWIS_df = utils.crosswalk(usgs_site_codes=site)
+                NHD_segment = NHD_NWIS_df.nwm_feature_id.values[0]
+                NHD_reaches.append(NHD_segment)
 
             except:
-                NWM_segment = np.nan
-                NWM_reaches.append(NWM_segment)
+                NHD_segment = np.nan
+                NHD_reaches.append(NHD_segment)
 
-        self.HUC_NWIS['NWM_reachid'] = NWM_reaches
+        self.HUC_NWIS['NHD_reachid'] = NHD_reaches
 
         self.HUC_NWIS = self.HUC_NWIS.fillna(0.0)
 
-        self.HUC_NWIS['NWM_reachid'] = self.HUC_NWIS['NWM_reachid'].astype(int)
+        self.HUC_NWIS['NHD_reachid'] = self.HUC_NWIS['NHD_reachid'].astype(int)
 
-        self.HUC_NWIS = self.HUC_NWIS[self.HUC_NWIS.NWM_reachid != 0]
+        self.HUC_NWIS = self.HUC_NWIS[self.HUC_NWIS.NHD_reachid != 0]
 
 
 
@@ -1077,52 +1300,48 @@ class HUC_Eval():
         #prepare the daterange
         self.date_range_list()
 
-        self.comparison_reaches = list(self.HUC_NWIS.NWM_reachid)
+        self.comparison_reaches = list(self.HUC_NWIS.NHD_reachid)
         self.NWIS_sites = list(self.HUC_NWIS.NWIS_site_id)
 
 
         self.NWIS_data = pd.DataFrame(columns = self.NWIS_sites)
         self.Mod_data = pd.DataFrame(columns = self.comparison_reaches)
 
-
+        self.HUC_NWIS.state_id = self.HUC_NWIS.state_id.str.lower()
         #create a key/dict of site/state id
         NWIS_state_key =  dict(zip(self.HUC_NWIS.NWIS_site_id, 
                                   self.HUC_NWIS.state_id))                           
 
 
-        #Add in port to new/other model formulation outputs 
-        if self.model == 'NWM':
+        Mod_state_key =  dict(zip(self.HUC_NWIS.NHD_reachid, 
+                              self.HUC_NWIS.state_id))
 
-            Mod_state_key =  dict(zip(self.HUC_NWIS.NWM_reachid, 
-                                  self.HUC_NWIS.state_id))
+        print('Getting ', self.model, ' data')
+        pbar = ProgressBar()
+        for site in pbar(self.comparison_reaches):
+            state = Mod_state_key[site]
+            filepath = self.cwd+'/Data/'+self.model+'/NHD_segments_'+state+'.h5'
+            try:
 
-            #for NWM, add similar workflow to get non-NWM data
-            print('Getting ', self.model, ' data')
-            pbar = ProgressBar()
-            for site in pbar(self.comparison_reaches):
-              #  print('Getting data for NWM: ', site)
-                state = Mod_state_key[site]
-                try:
+                format = '%Y-%m-%d %H:%M:%S'
+                Mod_flow = pd.read_hdf(filepath, key = str(site))
+                Mod_flow['time'] ='12:00:00' 
+                Mod_flow['Datetime'] = pd.to_datetime(Mod_flow['Datetime']+ ' ' + Mod_flow['time'], format = format)
+                Mod_flow.set_index('Datetime', inplace = True)
+                Mod_flow = Mod_flow.loc[self.startDT:self.endDT]
 
-                    format = '%Y-%m-%d %H:%M:%S'
-                    Mod_flow = pd.read_hdf(self.cwd+'/Data/NWM/NWM_segments_'+state+'.h5', key = str(site))
-                    Mod_flow['time'] ='12:00:00' 
-                    Mod_flow['Datetime'] = pd.to_datetime(Mod_flow['Datetime']+ ' ' + Mod_flow['time'], format = format)
-                    Mod_flow.set_index('Datetime', inplace = True)
-                    Mod_flow = Mod_flow.loc[self.startDT:self.endDT]
-
-                    flow = self.model + '_flow'
+                flow = self.model + '_flow'
 
 
-                    self.Mod_data[site] = Mod_flow[flow]
+                self.Mod_data[site] = Mod_flow[flow]
 
-                except:
-                    print('NWM site ', site, ' not in database, skipping')
-                    #remove item from list
-                    
-            #reset comparison reaches
-            self.Mod_data.dropna(axis = 1, inplace = True)
-            self.comparison_reaches = self.Mod_data.columns
+            except:
+                print(self.model,' site ', site, ' not in database, skipping')
+                #remove item from list
+
+        #reset comparison reaches
+        self.Mod_data.dropna(axis = 1, inplace = True)
+        self.comparison_reaches = self.Mod_data.columns
 
 
 
@@ -1167,15 +1386,7 @@ class HUC_Eval():
         self.Mod_column = pd.DataFrame(self.Mod_column.stack(), columns = [col])
         self.Mod_column = self.Mod_column.reset_index().drop('level_1',1)
 
-      #  print('Creating Evaluation Dataframe')
-        #Creates a total categorical evaluation comparing model performacne
-       # self.Evaluation = pd.concat([self.Mod_column,self.NWIS_column], axis = 1)
-        #self.Evaluation = self.Evaluation.T.drop_duplicates().T     
-        #self.Evaluation = self.Evaluation.dropna()      
-
-
-
-    def Interactive_Model_Eval(self, freq):
+    def Interactive_Model_Eval(self, freq, supply):
         self.freq = freq
 
         if self.freq == 'D':
@@ -1197,23 +1408,195 @@ class HUC_Eval():
             #Modeled
             self.Mod_data_resampled = self.Mod_data.copy()*self.cfsday_AFday
             self.Mod_data_resampled = self.Mod_data_resampled.resample(self.freq).sum()
+            
+        if supply == True:
+            #NWIS
+            #Get Columns names
+            columns = self.NWIS_data_resampled.columns
 
-        num_figs = len(self.comparison_reaches)
+            #set up cumulative monthly values
+            self.NWIS_data_resampled['Year'] = self.NWIS_data_resampled.index.year
+
+            self.NWIS_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.NWIS_CumSum[site] = self.NWIS_data_resampled.groupby(['Year'])[site].cumsum()
+
+            #Model
+            #Get Columns names
+            columns = self.Mod_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.Mod_data_resampled['Year'] = self.Mod_data_resampled.index.year
+
+            self.Mod_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.Mod_CumSum[site] = self.Mod_data_resampled.groupby(['Year'])[site].cumsum()
+                
+            #set the Mod and NWIS resampled data == to the CumSum Df's
+            self.NWIS_data_resampled = self.NWIS_CumSum
+            self.Mod_data_resampled =self.Mod_CumSum
+            
+            
+            
+        RMSE = []
+        MAXERROR = []
+        MAPE = []
+        KGE = []
+
+        for row in np.arange(0,len(self.HUC_NWIS),1):
+            #Get NWIS id
+            NWISid = self.HUC_NWIS['NWIS_site_id'][row]
+            #Get Model reach id
+            reachid = 'NHD_reachid'
+            modid = self.HUC_NWIS[reachid][row]
+            #get observed and prediction data
+            obs = self.NWIS_data_resampled[NWISid]
+            mod = self.Mod_data_resampled[modid]
+            
+            #remove na values or 0
+            df = pd.DataFrame()
+            df['obs'] = obs
+            df['mod'] = mod.astype('float64')
+            df['error'] = df['obs'] - df['mod']
+            df['P_error'] = abs(df['error']/df['obs'])*100
+            #drop inf values
+            df.replace([np.inf, -np.inf], np.nan, inplace = True)
+            df.dropna(inplace = True)
+            
+            obs = df['obs']
+            mod = df['mod']
+
+            #calculate scoring
+            rmse = round(mean_squared_error(obs, mod, squared=False))
+            maxerror = round(max_error(obs, mod))
+            mape = df.P_error.mean()
+            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+
+            RMSE.append(rmse)
+            MAXERROR.append(maxerror)
+            MAPE.append(mape)
+            KGE.append(kge[0])
+
+        #Connect model evaluation to a DF, add in relevant information concerning LULC
+        Eval = pd.DataFrame()
+        Eval['NWIS_site_id'] = self.HUC_NWIS['NWIS_site_id']
+        Eval[reachid] = self.HUC_NWIS[reachid]
+        Eval['Location'] = self.HUC_NWIS['NWIS_sitename']
+        Eval['RMSE'] = RMSE
+        Eval['MaxError'] = MAXERROR
+        Eval['MAPE'] = MAPE
+        Eval['KGE'] = KGE
+        Eval['Drainage_area_mi2'] = self.HUC_NWIS['Drainage_area_mi2']
+        Eval['Mean_Basin_Elev_ft'] = self.HUC_NWIS['Mean_Basin_Elev_ft']
+        Eval['Perc_Forest'] = self.HUC_NWIS['Perc_Forest']
+        Eval['Perc_Imperv'] = self.HUC_NWIS['Perc_Imperv']
+        Eval['Perc_Herbace'] = self.HUC_NWIS['Perc_Herbace']
+        Eval['Mean_Ann_Precip_in'] = self.HUC_NWIS['Mean_Ann_Precip_in']
+        Eval['Ann_low_cfs'] = self.HUC_NWIS['Ann_low_cfs']
+        Eval['Ann_mean_cfs'] = self.HUC_NWIS['Ann_mean_cfs']
+        Eval['Ann_hi_cfs'] = self.HUC_NWIS['Ann_hi_cfs']
+        Eval['name'] = self.HUC_NWIS['name']
+        Eval[self.HUC_length] = self.HUC_NWIS[self.HUC_length]
+
+        #sort dataframe and reindex
+        self.Eval = Eval.sort_values('KGE', ascending = False).reset_index(drop = True)    
+        #display evaluation DF
+        display(self.Eval)
+        
+        #plot the model performance vs LULC to identify any relationships indicating where/why model performance
+        #does well or poor
+        #make all very negative KGE values -1
+        self.Eval['KGE'][self.Eval['KGE'] < -1] = -1
+
+        fig, ax = plt.subplots(3, 3, figsize = (11,11))
+        fig.suptitle('Watershed Charcteristics vs. Model Performance', fontsize = 16)
+
+        ax1 = ['Drainage_area_mi2', 'Mean_Basin_Elev_ft', 'Perc_Forest']
+        for var in np.arange(0,len(ax1),1):
+            variable = ax1[var]
+            #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[0,var].scatter(x = x, y = y)
+            ax[0,var].set_ylabel(ax1[var])
+             #add trendline
+            #calculate equation for trendline
+            try:
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[0,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+        ax2 = ['Perc_Imperv', 'Perc_Herbace', 'Mean_Ann_Precip_in']
+        for var in np.arange(0,len(ax2),1):
+            variable = ax2[var]
+             #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[1,var].scatter(x = x, y = y)
+            ax[1,var].set_ylabel(ax2[var])
+            #add trendline
+            #calculate equation for trendline
+            try:
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[1,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+        ax3 = ['Ann_low_cfs', 'Ann_mean_cfs', 'Ann_hi_cfs']
+        for var in np.arange(0,len(ax3),1):
+            variable = ax3[var]
+             #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[2,var].scatter(x = x, y = y)
+            ax[2,var].set_xlabel('Model Performance (KGE)')
+            ax[2,var].set_ylabel(ax3[var])
+             #add trendline
+            #calculate equation for trendline
+            try:
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[2,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+
+        plt.tight_layout()
+        plt.show()
+        
+        num_figs = len(self.Eval)
         self.HUC_NWIS.reset_index(inplace = True, drop = True)
         for i in np.arange(0,num_figs,1):
 
-            reach = self.comparison_reaches[i]
-            site = self.NWIS_sites[i]
+            reach = self.Eval[reachid][i]
+            site = self.Eval['NWIS_site_id'][i]
             #print(site, reach)
-            sitename = self.HUC_NWIS.NWIS_sitename[i]
+            sitename = self.Eval.Location[i]
             #sitestat = str(df[self.category][i])
 
-            plot_title = self.HUC_NWIS['name'][i] +' Basin: HUC' + self.HUC_NWIS[self.HUC_length][i] + ' ' + self.freqkeys[self.freq]+ ' (' + self.units +') \n Performance of ' + self.model +' predictions, reach: ' + str(reach) + '\n USGS:' + str(site) +' ' + str(sitename)
+            plot_title = self.Eval['name'][i] +' Basin: HUC' + self.Eval[self.HUC_length][i] + ' ' + self.freqkeys[self.freq]+ ' (' + self.units +') \n Performance of ' + self.model +' predictions, reach: ' + str(reach) + '\n USGS:' + str(site) +' ' + str(sitename)
             #plot_title = self.HUC_NWIS['name'][0] +' Basin' + ' ' + self.freqkeys[self.freq]+ ' (' + self.units +') \n Performance of ' + self.model +' predictions, reach: ' + str(reach) + '\n USGS:' + str(site) +' ' + str(sitename)
 
 
             NWIS_site_lab = 'USGS: ' + str(site)
-            Mod_reach_lab = self.model + ': ' + str(reach)
+            Mod_reach_lab = self.model + ': NHD ' + str(reach)
 
             Eval_cols = [NWIS_site_lab, Mod_reach_lab]
 
@@ -1233,12 +1616,29 @@ class HUC_Eval():
                 Eval_df = Eval_df.reset_index()
                 Eval_df['Datetime'] = pd.to_datetime(Eval_df['Datetime'])
                 Eval_df.set_index('Datetime', inplace = True, drop = True)
+                
+                #get observed and prediction data
+                obs = Eval_df[NWIS_site_lab]
+                mod = Eval_df[Mod_reach_lab]
+
+                #remove na values or 0
+                df = pd.DataFrame()
+                df['obs'] = obs
+                df['mod'] = mod.astype('float64')
+                df['error'] = df['obs'] - df['mod']
+                df['P_error'] = abs(df['error']/df['obs'])*100
+                #drop inf values
+                df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                df.dropna(inplace = True)
+
+                obs = df['obs']
+                mod = df['mod']
 
                 #calculate scoring
-                rmse = round(mean_squared_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab], squared=False))
-                maxerror = round(max_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]))
-                MAPE = round(mean_absolute_percentage_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab])*100)
-                kge, r, alpha, beta = he.evaluator(he.kge, Eval_df[Mod_reach_lab].astype('float32'), Eval_df[NWIS_site_lab].astype('float32'))
+                rmse = round(mean_squared_error(obs, mod, squared=False))
+                maxerror = round(max_error(obs, mod))
+                MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
+                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
                 
                 #set limit to MAPE error
                 if MAPE > 1000:
@@ -1289,7 +1689,7 @@ class HUC_Eval():
 
 
 
-    def Map_Plot_Eval(self, freq):
+    def Map_Plot_Eval(self, freq, supply):
         self.freq = freq
 
         if self.freq == 'D':
@@ -1314,9 +1714,38 @@ class HUC_Eval():
             #Modeled
             self.Mod_data_resampled = self.Mod_data.copy()*self.cfsday_AFday
             self.Mod_data_resampled = self.Mod_data_resampled.resample(self.freq).sum()
+            
+        if supply == True:
+            #NWIS
+            #Get Columns names
+            columns = self.NWIS_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.NWIS_data_resampled['Year'] = self.NWIS_data_resampled.index.year
+
+            self.NWIS_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.NWIS_CumSum[site] = self.NWIS_data_resampled.groupby(['Year'])[site].cumsum()
+
+            #Model
+            #Get Columns names
+            columns = self.Mod_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.Mod_data_resampled['Year'] = self.Mod_data_resampled.index.year
+
+            self.Mod_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.Mod_CumSum[site] = self.Mod_data_resampled.groupby(['Year'])[site].cumsum()
+                
+            #set the Mod and NWIS resampled data == to the CumSum Df's
+            self.NWIS_data_resampled = self.NWIS_CumSum
+            self.Mod_data_resampled =self.Mod_CumSum
 
         print('Plotting monitoring station locations')
-        cols =  ['NWIS_site_id', 'NWIS_sitename', 'NWM_reachid', 'dec_lat_va', 'dec_long_va', 'geometry']
+        cols =  ['NWIS_site_id', 'NWIS_sitename', 'NHD_reachid', 'dec_lat_va', 'dec_long_va', 'geometry']
 
         self.df_map = self.HUC_NWIS[cols]
         self.df_map.reset_index(inplace = True, drop = True) 
@@ -1344,17 +1773,32 @@ class HUC_Eval():
             USGSsite = 'USGS station id: ' + site
             site_name = self.df_map['NWIS_sitename'][i]
 
-            reach = self.df_map['NWM_reachid'][i]
-            NWMreach = 'NWM reach id: ' + str(reach)
+            reach = self.df_map['NHD_reachid'][i]
+            Modreach = self.model +' reach id: ' + str(reach)
             
    
             #get modeled and observed information for each site
             df = pd.DataFrame(self.NWIS_data_resampled[site])
             df = df.rename(columns = {site: USGSsite})
-            df[NWMreach] = pd.DataFrame(self.Mod_data_resampled[reach])
+            df[Modreach] = pd.DataFrame(self.Mod_data_resampled[reach])
+            
+            #remove na values or 0
+            df_narem = pd.DataFrame()
+            df_narem['obs'] = self.NWIS_data_resampled[site].astype('float64')
+            df_narem['mod'] = self.Mod_data_resampled[reach].astype('float64')
+            df_narem['error'] = df_narem['obs'] - df_narem['mod']
+            df_narem['P_error'] = abs(df_narem['error']/df_narem['obs'])*100
+            #drop inf values
+            df_narem.replace([np.inf, -np.inf], np.nan, inplace = True)
+            df_narem.dropna(inplace = True)
+
+            obs = df_narem['obs']
+            mod = df_narem['mod']
+
+            #calculate scoring
+            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
             
             #set the color of marker by model performance
-            kge, r, alpha, beta = he.evaluator(he.kge, df[NWMreach].astype('float32'), df[USGSsite].astype('float32'))
 
             if kge[0] > 0.30:
                 color = 'green'
@@ -1397,7 +1841,7 @@ class HUC_Eval():
 
 
         display(m)
-        
+          
         
         
         
@@ -1431,9 +1875,9 @@ class Reach_Eval():
 
    
     '''
-    Get WBD HUC data, how to add in multiple hucs at once from same HU?
+    Get WBD HUC data
     '''
-    def get_reach_info(self):
+    def get_NHD_Model_info(self):
         try:
             print('Getting geospatial information for NHD reaches')
            
@@ -1487,44 +1931,42 @@ class Reach_Eval():
         self.NWIS_data = pd.DataFrame(columns = self.NWIS_sites)
         self.Mod_data = pd.DataFrame(columns = self.comparison_reaches)
 
-
+        self.sites.state_id = self.sites.state_id.str.lower()
         #create a key/dict of site/state id
         NWIS_state_key =  dict(zip(self.sites.NWIS_site_id, 
                                   self.sites.state_id))                           
 
 
-        #Add in port to new/other model formulation outputs 
-        if self.model == 'NWM':
+        Mod_state_key =  dict(zip(self.sites.NHD_reachid, 
+                              self.sites.state_id))
 
-            Mod_state_key =  dict(zip(self.sites.NHD_reachid, 
-                                  self.sites.state_id))
+        #for NWM, add similar workflow to get non-NWM data
+        print('Getting ', self.model, ' data')
+        pbar = ProgressBar()
+        for site in pbar(self.comparison_reaches):
+          #  print('Getting data for NWM: ', site)
+            state = Mod_state_key[site]
+            filepath = self.cwd+'/Data/'+self.model+'/NHD_segments_'+state+'.h5'
+            try:
 
-            #for NWM, add similar workflow to get non-NWM data
-            print('Getting ', self.model, ' data')
-            pbar = ProgressBar()
-            for site in pbar(self.comparison_reaches):
-              #  print('Getting data for NWM: ', site)
-                state = Mod_state_key[site]
-                try:
+                format = '%Y-%m-%d %H:%M:%S'
+                Mod_flow = pd.read_hdf(filepath, key = str(site))
+                Mod_flow['time'] ='12:00:00' 
+                Mod_flow['Datetime'] = pd.to_datetime(Mod_flow['Datetime']+ ' ' + Mod_flow['time'], format = format)
+                Mod_flow.set_index('Datetime', inplace = True)
+                Mod_flow = Mod_flow.loc[self.startDT:self.endDT]
 
-                    format = '%Y-%m-%d %H:%M:%S'
-                    Mod_flow = pd.read_hdf(self.cwd+'/Data/NWM/NWM_segments_'+state+'.h5', key = str(site))
-                    Mod_flow['time'] ='12:00:00' 
-                    Mod_flow['Datetime'] = pd.to_datetime(Mod_flow['Datetime']+ ' ' + Mod_flow['time'], format = format)
-                    Mod_flow.set_index('Datetime', inplace = True)
-                    Mod_flow = Mod_flow.loc[self.startDT:self.endDT]
-
-                    flow = self.model + '_flow'
+                flow = self.model + '_flow'
 
 
-                    self.Mod_data[site] = Mod_flow[flow]
+                self.Mod_data[site] = Mod_flow[flow]
 
-                except:
-                    print('NWM site ', site, ' not in database, skipping')
-                  
-            #reset comparison reaches
-            self.Mod_data.dropna(axis = 1, inplace = True)
-            self.comparison_reaches = self.Mod_data.columns
+            except:
+                print(self.model,' site: ', site, ' not in database, skipping')
+
+        #reset comparison reaches
+        self.Mod_data.dropna(axis = 1, inplace = True)
+        self.comparison_reaches = self.Mod_data.columns
 
 
 
@@ -1570,15 +2012,9 @@ class Reach_Eval():
         self.Mod_column = pd.DataFrame(self.Mod_column.stack(), columns = [col])
         self.Mod_column = self.Mod_column.reset_index().drop('level_1',1)
 
-      #  print('Creating Evaluation Dataframe')
-        #Creates a total categorical evaluation comparing model performacne
-       # self.Evaluation = pd.concat([self.Mod_column,self.NWIS_column], axis = 1)
-        #self.Evaluation = self.Evaluation.T.drop_duplicates().T     
-        #self.Evaluation = self.Evaluation.dropna()      
 
 
-
-    def Interactive_Model_Eval(self, freq):
+    def Interactive_Model_Eval(self, freq, supply):
         self.freq = freq
 
         if self.freq == 'D':
@@ -1600,16 +2036,186 @@ class Reach_Eval():
             #Modeled
             self.Mod_data_resampled = self.Mod_data.copy()*self.cfsday_AFday
             self.Mod_data_resampled = self.Mod_data_resampled.resample(self.freq).sum()
+            
+        if supply == True:
+            #NWIS
+            #Get Columns names
+            columns = self.NWIS_data_resampled.columns
 
-        num_figs = len(self.comparison_reaches)
+            #set up cumulative monthly values
+            self.NWIS_data_resampled['Year'] = self.NWIS_data_resampled.index.year
+
+            self.NWIS_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.NWIS_CumSum[site] = self.NWIS_data_resampled.groupby(['Year'])[site].cumsum()
+
+            #Model
+            #Get Columns names
+            columns = self.Mod_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.Mod_data_resampled['Year'] = self.Mod_data_resampled.index.year
+
+            self.Mod_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.Mod_CumSum[site] = self.Mod_data_resampled.groupby(['Year'])[site].cumsum()
+                
+            #set the Mod and NWIS resampled data == to the CumSum Df's
+            self.NWIS_data_resampled = self.NWIS_CumSum
+            self.Mod_data_resampled =self.Mod_CumSum
+            
+            
+        RMSE = []
+        MAXERROR = []
+        MAPE = []
+        KGE = []
+
+        for row in np.arange(0,len(self.sites),1):
+            #Get NWIS id
+            NWISid = self.sites['NWIS_site_id'][row]
+            #Get Model reach id
+            reachid = 'NHD_reachid'
+            modid = self.sites[reachid][row]
+            #get observed and prediction data
+            obs = self.NWIS_data_resampled[NWISid]
+            mod = self.Mod_data_resampled[modid]
+            
+            #remove na values or 0
+            df = pd.DataFrame()
+            df['obs'] = obs
+            df['mod'] = mod.astype('float64')
+            df['error'] = df['obs'] - df['mod']
+            df['P_error'] = abs(df['error']/df['obs'])*100
+            #drop inf values
+            df.replace([np.inf, -np.inf], np.nan, inplace = True)
+            df.dropna(inplace = True)
+            
+            obs = df['obs']
+            mod = df['mod']
+
+            #calculate scoring
+            rmse = round(mean_squared_error(obs, mod, squared=False))
+            maxerror = round(max_error(obs, mod))
+            mape = df.P_error.mean()
+            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+
+            RMSE.append(rmse)
+            MAXERROR.append(maxerror)
+            MAPE.append(mape)
+            KGE.append(kge[0])
+
+        #Connect model evaluation to a DF, add in relevant information concerning LULC
+        Eval = pd.DataFrame()
+        Eval['NWIS_site_id'] = self.sites['NWIS_site_id']
+        Eval[reachid] = self.sites[reachid]
+        Eval['Location'] = self.sites['NWIS_sitename']
+        Eval['RMSE'] = RMSE
+        Eval['MaxError'] = MAXERROR
+        Eval['MAPE'] = MAPE
+        Eval['KGE'] = KGE
+        Eval['Drainage_area_mi2'] = self.sites['Drainage_area_mi2']
+        Eval['Mean_Basin_Elev_ft'] = self.sites['Mean_Basin_Elev_ft']
+        Eval['Perc_Forest'] = self.sites['Perc_Forest']
+        Eval['Perc_Imperv'] = self.sites['Perc_Imperv']
+        Eval['Perc_Herbace'] = self.sites['Perc_Herbace']
+        Eval['Mean_Ann_Precip_in'] = self.sites['Mean_Ann_Precip_in']
+        Eval['Ann_low_cfs'] = self.sites['Ann_low_cfs']
+        Eval['Ann_mean_cfs'] = self.sites['Ann_mean_cfs']
+        Eval['Ann_hi_cfs'] = self.sites['Ann_hi_cfs']
+        Eval['Location'] = self.sites.NWIS_sitename
+
+        #sort dataframe and reindex
+        self.Eval = Eval.sort_values('KGE', ascending = False).reset_index(drop = True)    
+        #display evaluation DF
+        display(self.Eval)
+        
+        #plot the model performance vs LULC to identify any relationships indicating where/why model performance
+        #does well or poor
+        #make all very negative KGE values -1
+        self.Eval['KGE'][self.Eval['KGE'] < -1] = -1
+
+        fig, ax = plt.subplots(3, 3, figsize = (11,11))
+        fig.suptitle('Watershed Charcteristics vs. Model Performance', fontsize = 16)
+
+        ax1 = ['Drainage_area_mi2', 'Mean_Basin_Elev_ft', 'Perc_Forest']
+        for var in np.arange(0,len(ax1),1):
+            variable = ax1[var]
+            
+            #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[0,var].scatter(x = x, y = y)
+            ax[0,var].set_ylabel(ax1[var])
+            #add trendline
+            #calculate equation for trendline
+            try:
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[0,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+        ax2 = ['Perc_Imperv', 'Perc_Herbace', 'Mean_Ann_Precip_in']
+        for var in np.arange(0,len(ax2),1):
+            variable = ax2[var]
+             #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[1,var].scatter(x = x, y = y)
+            ax[1,var].set_ylabel(ax2[var])
+            #add trendline
+            try:
+                #calculate equation for trendline
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[1,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+        ax3 = ['Ann_low_cfs', 'Ann_mean_cfs', 'Ann_hi_cfs']
+        for var in np.arange(0,len(ax3),1):
+            variable = ax3[var]
+             #remove na values for variables to make trendline
+            cols = ['KGE', variable]
+            df = self.Eval[cols]
+            df.dropna(axis = 0, inplace = True)
+            x = df['KGE']
+            y = df[variable]
+            ax[2,var].scatter(x = x, y = y)
+            ax[2,var].set_xlabel('Model Performance (KGE)')
+            ax[2,var].set_ylabel(ax3[var])
+            #add trendline
+            #calculate equation for trendline
+            try:
+                z = np.polyfit(x, y, 1)
+                p = np.poly1d(z)
+                #add trendline to plot
+                ax[2,var].plot(x, p(x), color = 'r', linestyle = '--')
+            except:
+                pass
+
+
+        plt.tight_layout()
+        plt.show()
+        
+        num_figs = len(self.Eval)
         self.sites.reset_index(inplace = True, drop = True)
         for i in np.arange(0,num_figs,1):
 
-            reach = self.comparison_reaches[i]
-            site = self.NWIS_sites[i]
+            reach = self.Eval[reachid][i]
+            site = self.Eval['NWIS_site_id'][i]
             #print(site, reach)
-            sitename = self.sites.NWIS_sitename[i]
-            #sitestat = str(df[self.category][i])
+            sitename = self.Eval.Location[i]
 
             plot_title = self.freqkeys[self.freq]+ ' (' + self.units +') \n Performance of ' + self.model +' predictions, reach: ' + str(reach) + '\n USGS:' + str(site) +' ' + str(sitename)
             #plot_title = self.sites['name'][0] +' Basin' + ' ' + self.freqkeys[self.freq]+ ' (' + self.units +') \n Performance of ' + self.model +' predictions, reach: ' + str(reach) + '\n USGS:' + str(site) +' ' + str(sitename)
@@ -1636,12 +2242,29 @@ class Reach_Eval():
                 Eval_df = Eval_df.reset_index()
                 Eval_df['Datetime'] = pd.to_datetime(Eval_df['Datetime'])
                 Eval_df.set_index('Datetime', inplace = True, drop = True)
+                
+                #get observed and prediction data
+                obs = Eval_df[NWIS_site_lab]
+                mod = Eval_df[Mod_reach_lab]
+
+                #remove na values or 0
+                df = pd.DataFrame()
+                df['obs'] = obs
+                df['mod'] = mod.astype('float64')
+                df['error'] = df['obs'] - df['mod']
+                df['P_error'] = abs(df['error']/df['obs'])*100
+                #drop inf values
+                df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                df.dropna(inplace = True)
+
+                obs = df['obs']
+                mod = df['mod']
 
                 #calculate scoring
-                rmse = round(mean_squared_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab], squared=False))
-                maxerror = round(max_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]))
-                MAPE = round(mean_absolute_percentage_error(Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab])*100)
-                kge, r, alpha, beta = he.evaluator(he.kge, Eval_df[Mod_reach_lab].astype('float32'), Eval_df[NWIS_site_lab].astype('float32'))
+                rmse = round(mean_squared_error(obs, mod, squared=False))
+                maxerror = round(max_error(obs, mod))
+                MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
+                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
                 
                 #set limit to MAPE error
                 if MAPE > 1000:
@@ -1693,7 +2316,7 @@ class Reach_Eval():
 
 
 
-    def Map_Plot_Eval(self, freq):
+    def Map_Plot_Eval(self, freq, supply):
         self.freq = freq
 
         if self.freq == 'D':
@@ -1718,6 +2341,36 @@ class Reach_Eval():
             #Modeled
             self.Mod_data_resampled = self.Mod_data.copy()*self.cfsday_AFday
             self.Mod_data_resampled = self.Mod_data_resampled.resample(self.freq).sum()
+            
+        if supply == True:
+            #NWIS
+            #Get Columns names
+            columns = self.NWIS_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.NWIS_data_resampled['Year'] = self.NWIS_data_resampled.index.year
+
+            self.NWIS_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.NWIS_CumSum[site] = self.NWIS_data_resampled.groupby(['Year'])[site].cumsum()
+
+            #Model
+            #Get Columns names
+            columns = self.Mod_data_resampled.columns
+
+            #set up cumulative monthly values
+            self.Mod_data_resampled['Year'] = self.Mod_data_resampled.index.year
+
+            self.Mod_CumSum = pd.DataFrame(columns=columns)
+
+            for site in columns:
+                self.Mod_CumSum[site] = self.Mod_data_resampled.groupby(['Year'])[site].cumsum()
+                
+            #set the Mod and NWIS resampled data == to the CumSum Df's
+            self.NWIS_data_resampled = self.NWIS_CumSum
+            self.Mod_data_resampled =self.Mod_CumSum
+            
 
         print('Plotting monitoring station locations')
         cols =  ['NWIS_site_id', 'NWIS_sitename', 'NHD_reachid', 'dec_lat_va', 'dec_long_va', 'geometry']
@@ -1751,16 +2404,32 @@ class Reach_Eval():
             site_name = self.df_map['NWIS_sitename'][i]
 
             reach = self.df_map['NHD_reachid'][i]
-            NWMreach = 'NWM reach id: ' + str(reach)
+            Modreach = self.model +' reach id: ' + str(reach)
             
-   
+ 
+            
             #get modeled and observed information for each site
             df = pd.DataFrame(self.NWIS_data_resampled[site])
             df = df.rename(columns = {site: USGSsite})
-            df[NWMreach] = pd.DataFrame(self.Mod_data_resampled[reach])
+            df[Modreach] = pd.DataFrame(self.Mod_data_resampled[reach])
+            
+            #remove na values or 0, this evaluates the model only on NWIS observations
+            df_narem = pd.DataFrame()
+            df_narem['obs'] = self.NWIS_data_resampled[site].astype('float64')
+            df_narem['mod'] = self.Mod_data_resampled[reach].astype('float64')
+            df_narem['error'] = df_narem['obs'] - df_narem['mod']
+            df_narem['P_error'] = abs(df_narem['error']/df_narem['obs'])*100
+            #drop inf values
+            df_narem.replace([np.inf, -np.inf], np.nan, inplace = True)
+            df_narem.dropna(inplace = True)
+
+            obs = df_narem['obs']
+            mod = df_narem['mod']
+
+            #calculate scoring
+            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
             
             #set the color of marker by model performance
-            kge, r, alpha, beta = he.evaluator(he.kge, df[NWMreach].astype('float32'), df[USGSsite].astype('float32'))
 
             if kge[0] > 0.30:
                 color = 'green'
