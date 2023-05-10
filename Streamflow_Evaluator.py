@@ -1451,9 +1451,16 @@ class HUC_Eval():
             #Get Model reach id
             reachid = 'NHD_reachid'
             modid = self.HUC_NWIS[reachid][row]
+            
+            #potential zero value error -> change any values of zero to 0.1
+            self.NWIS_data_resampled[self.NWIS_data_resampled < 0.01] = 0.01
+            self.Mod_data_resampled[self.Mod_data_resampled < 0.01] = 0.01
+            
             #get observed and prediction data
             obs = self.NWIS_data_resampled[NWISid]
             mod = self.Mod_data_resampled[modid]
+            
+            
             
             #remove na values or 0
             df = pd.DataFrame()
@@ -1467,6 +1474,8 @@ class HUC_Eval():
             
             obs = df['obs']
             mod = df['mod']
+            
+                 
 
             #calculate scoring
             rmse = round(mean_squared_error(obs, mod, squared=False))
@@ -2078,6 +2087,11 @@ class Reach_Eval():
             #Get Model reach id
             reachid = 'NHD_reachid'
             modid = self.sites[reachid][row]
+            
+            #potential zero value error -> change any values of zero to 0.1
+            self.NWIS_data_resampled[self.NWIS_data_resampled < 0.01] = 0.01
+            self.Mod_data_resampled[self.Mod_data_resampled < 0.01] = 0.01
+            
             #get observed and prediction data
             obs = self.NWIS_data_resampled[NWISid]
             mod = self.Mod_data_resampled[modid]
