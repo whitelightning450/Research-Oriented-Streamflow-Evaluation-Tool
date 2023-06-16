@@ -744,25 +744,40 @@ class LULC_Eval():
             df = pd.DataFrame()
             df['obs'] = obs
             df['mod'] = mod.astype('float64')
-            df['error'] = df['obs'] - df['mod']
-            df['P_error'] = abs(df['error']/df['obs'])*100
-            #drop inf values
-            df.replace([np.inf, -np.inf], np.nan, inplace = True)
-            df.dropna(inplace = True)
-            
-            obs = df['obs']
-            mod = df['mod']
+         #adding dropna() to prevent crashing script
+            df.dropna(axis=0, inplace =True)
 
-            #calculate scoring
-            rmse = round(mean_squared_error(obs, mod, squared=False))
-            maxerror = round(max_error(obs, mod))
-            mape = df.P_error.mean()
-            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+            if len(df)>0:
+                df['error'] = df['obs'] - df['mod']
+                df['P_error'] = abs(df['error']/df['obs'])*100
+                #drop inf values
+                df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                df.dropna(inplace = True)
 
-            RMSE.append(rmse)
-            MAXERROR.append(maxerror)
-            MAPE.append(mape)
-            KGE.append(kge[0])
+                obs = df['obs']
+                mod = df['mod']
+
+                #calculate scoring
+                rmse = round(mean_squared_error(obs, mod, squared=False))
+                maxerror = round(max_error(obs, mod))
+                mape = df.P_error.mean()
+                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+
+                RMSE.append(rmse)
+                MAXERROR.append(maxerror)
+                MAPE.append(mape)
+                KGE.append(kge[0])
+            else:
+                #calculate scoring
+                rmse = 0
+                maxerror = 0
+                mape = 0
+                kge = 0
+                
+                RMSE.append(rmse)
+                MAXERROR.append(maxerror)
+                MAPE.append(mape)
+                KGE.append(kge)
 
         #Connect model evaluation to a DF, add in relevant information concerning LULC
         Eval = pd.DataFrame()
@@ -887,6 +902,9 @@ class LULC_Eval():
 
             #Adjust for different time intervals here
             #Daily
+            #potential zero value error -> change any values of zero to 0.1
+            self.NWIS_data_resampled[self.NWIS_data_resampled < 0.01] = 0.01
+            self.Mod_data_resampled[self.Mod_data_resampled < 0.01] = 0.01
 
             Eval_df = pd.DataFrame(index = self.NWIS_data_resampled.index, columns = Eval_cols)
             Eval_df[Mod_reach_lab] = self.Mod_data_resampled[reach]
@@ -910,66 +928,70 @@ class LULC_Eval():
                 df = pd.DataFrame()
                 df['obs'] = obs
                 df['mod'] = mod.astype('float64')
-                df['error'] = df['obs'] - df['mod']
-                df['P_error'] = abs(df['error']/df['obs'])*100
-                #drop inf values
-                df.replace([np.inf, -np.inf], np.nan, inplace = True)
-                df.dropna(inplace = True)
-
-                obs = df['obs']
-                mod = df['mod']
-
-                #calculate scoring
-                rmse = round(mean_squared_error(obs, mod, squared=False))
-                maxerror = round(max_error(obs, mod))
-                MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
-                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+                #adding dropna() to prevent crashing script
+                df.dropna(axis=0, inplace =True)
                 
-                #set limit to MAPE error
-                if MAPE > 1000:
-                    MAPE ='> 1000'
+                if len(df)>0:
+                    df['error'] = df['obs'] - df['mod']
+                    df['P_error'] = abs(df['error']/df['obs'])*100
+                    #drop inf values
+                    df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                    df.dropna(inplace = True)
 
-                rmse_phrase = 'RMSE: ' + str(rmse) + ' ' + self.units
-                error_phrase = 'Max Error: ' + str(maxerror) + ' ' + self.units
-                mape_phrase = 'MAPE: ' + str(MAPE) + '%'
-                kge_phrase = 'kge: ' + str(round(kge[0],2))
+                    obs = df['obs']
+                    mod = df['mod']
 
-                max_flow = max(max(Eval_df[NWIS_site_lab]), max(Eval_df[Mod_reach_lab]))
-                min_flow = min(min(Eval_df[NWIS_site_lab]), min(Eval_df[Mod_reach_lab]))
+                    #calculate scoring
+                    rmse = round(mean_squared_error(obs, mod, squared=False))
+                    maxerror = round(max_error(obs, mod))
+                    MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
+                    kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
 
-                flow_range = np.arange(min_flow, max_flow, (max_flow-min_flow)/100)
-                
-                if self.freq == 'A':
-                    bbox_L = -int(round((len(Eval_df)*.32),0))
-                    text_bbox_L = -int(round((len(Eval_df)*.22),0))
-                    
+                    #set limit to MAPE error
+                    if MAPE > 1000:
+                        MAPE ='> 1000'
+
+                    rmse_phrase = 'RMSE: ' + str(rmse) + ' ' + self.units
+                    error_phrase = 'Max Error: ' + str(maxerror) + ' ' + self.units
+                    mape_phrase = 'MAPE: ' + str(MAPE) + '%'
+                    kge_phrase = 'kge: ' + str(round(kge[0],2))
+
+                    max_flow = max(max(Eval_df[NWIS_site_lab]), max(Eval_df[Mod_reach_lab]))
+                    min_flow = min(min(Eval_df[NWIS_site_lab]), min(Eval_df[Mod_reach_lab]))
+
+                    flow_range = np.arange(min_flow, max_flow, (max_flow-min_flow)/100)
+
+                    if self.freq == 'A':
+                        bbox_L = -int(round((len(Eval_df)*.32),0))
+                        text_bbox_L = -int(round((len(Eval_df)*.22),0))
+
+                    else:
+                        bbox_L = -int(round((len(Eval_df)*.32),0))
+                        text_bbox_L = -int(round((len(Eval_df)*.16),0))
+
+                    Discharge_lab = 'Discharge (' +self.units +')'
+                    Obs_Discharge_lab = ' Observed Discharge (' +self.units +')'
+                    Mod_Discharge_lab = self.model +' Discharge (' +self.units +')'
+
+
+                    NWIS_hydrograph = hv.Curve((Eval_df.index, Eval_df[NWIS_site_lab]), 'DateTime', Discharge_lab, label = NWIS_site_lab).opts(title = plot_title, tools = ['hover'], color = 'orange')
+                    Mod_hydrograph = hv.Curve((Eval_df.index, Eval_df[Mod_reach_lab]), 'DateTime', Discharge_lab, label = Mod_reach_lab).opts(tools = ['hover'], color = 'blue')
+                    RMSE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.93, rmse_phrase, fontsize = 8)
+                    Error_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.83, error_phrase, fontsize = 8)
+                    MAPE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.73, mape_phrase, fontsize = 8)
+                    KGE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.63, kge_phrase, fontsize = 8)
+                    textbox_hv = hv.Rectangles([(Eval_df.index[bbox_L], max_flow*.56, Eval_df.index[-1], max_flow*.99)]).opts(color = 'white')
+
+                    Mod_NWIS_Scatter = hv.Scatter((Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]), Obs_Discharge_lab, Mod_Discharge_lab).opts(tools = ['hover'], color = 'blue', xrotation=45)
+                    Mod_NWIS_one2one = hv.Curve((flow_range, flow_range)).opts(color = 'red', line_dash='dashed')
+
+
+                    #display((NWIS_hydrograph * Mod_hydrograph).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
+                    display((NWIS_hydrograph * Mod_hydrograph*textbox_hv*RMSE_hv*Error_hv*MAPE_hv*KGE_hv).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
+
                 else:
-                    bbox_L = -int(round((len(Eval_df)*.32),0))
-                    text_bbox_L = -int(round((len(Eval_df)*.16),0))
+                    print('No data for NWIS site: ', str(NWIS_site_lab), ' skipping.')
 
-                Discharge_lab = 'Discharge (' +self.units +')'
-                Obs_Discharge_lab = ' Observed Discharge (' +self.units +')'
-                Mod_Discharge_lab = self.model +' Discharge (' +self.units +')'
-
-
-                NWIS_hydrograph = hv.Curve((Eval_df.index, Eval_df[NWIS_site_lab]), 'DateTime', Discharge_lab, label = NWIS_site_lab).opts(title = plot_title, tools = ['hover'], color = 'orange')
-                Mod_hydrograph = hv.Curve((Eval_df.index, Eval_df[Mod_reach_lab]), 'DateTime', Discharge_lab, label = Mod_reach_lab).opts(tools = ['hover'], color = 'blue')
-                RMSE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.93, rmse_phrase, fontsize = 8)
-                Error_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.83, error_phrase, fontsize = 8)
-                MAPE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.73, mape_phrase, fontsize = 8)
-                KGE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.63, kge_phrase, fontsize = 8)
-                textbox_hv = hv.Rectangles([(Eval_df.index[bbox_L], max_flow*.56, Eval_df.index[-1], max_flow*.99)]).opts(color = 'white')
-
-                Mod_NWIS_Scatter = hv.Scatter((Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]), Obs_Discharge_lab, Mod_Discharge_lab).opts(tools = ['hover'], color = 'blue', xrotation=45)
-                Mod_NWIS_one2one = hv.Curve((flow_range, flow_range)).opts(color = 'red', line_dash='dashed')
-
-
-                #display((NWIS_hydrograph * Mod_hydrograph).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
-                display((NWIS_hydrograph * Mod_hydrograph*textbox_hv*RMSE_hv*Error_hv*MAPE_hv*KGE_hv).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
-
-            else:
-                print('No data for NWIS site: ', str(NWIS_site_lab), ' skipping.')
-    
             
     #streamstats does not get lat long, we need this to do any NWIS geospatial work
     #https://github.com/hyriver/HyRiver-examples/blob/main/notebooks/dam_impact.ipynb
@@ -1466,27 +1488,44 @@ class HUC_Eval():
             df = pd.DataFrame()
             df['obs'] = obs
             df['mod'] = mod.astype('float64')
-            df['error'] = df['obs'] - df['mod']
-            df['P_error'] = abs(df['error']/df['obs'])*100
-            #drop inf values
-            df.replace([np.inf, -np.inf], np.nan, inplace = True)
-            df.dropna(inplace = True)
             
-            obs = df['obs']
-            mod = df['mod']
-            
-                 
+            df.dropna(axis=0, inplace =True)
 
-            #calculate scoring
-            rmse = round(mean_squared_error(obs, mod, squared=False))
-            maxerror = round(max_error(obs, mod))
-            mape = df.P_error.mean()
-            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+            if len(df)>0:
+                df['error'] = df['obs'] - df['mod']
+                df['P_error'] = abs(df['error']/df['obs'])*100
+                #drop inf values
+                df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                df.dropna(inplace = True)
 
-            RMSE.append(rmse)
-            MAXERROR.append(maxerror)
-            MAPE.append(mape)
-            KGE.append(kge[0])
+                obs = df['obs']
+                mod = df['mod']
+
+
+
+                #calculate scoring
+                rmse = round(mean_squared_error(obs, mod, squared=False))
+                maxerror = round(max_error(obs, mod))
+                mape = df.P_error.mean()
+                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+
+                RMSE.append(rmse)
+                MAXERROR.append(maxerror)
+                MAPE.append(mape)
+                KGE.append(kge[0])
+                
+            else:
+                #calculate scoring
+                rmse = 0
+                maxerror = 0
+                mape = 0
+                kge = 0
+                
+                RMSE.append(rmse)
+                MAXERROR.append(maxerror)
+                MAPE.append(mape)
+                KGE.append(kge)
+
 
         #Connect model evaluation to a DF, add in relevant information concerning LULC
         Eval = pd.DataFrame()
@@ -1634,66 +1673,69 @@ class HUC_Eval():
                 df = pd.DataFrame()
                 df['obs'] = obs
                 df['mod'] = mod.astype('float64')
-                df['error'] = df['obs'] - df['mod']
-                df['P_error'] = abs(df['error']/df['obs'])*100
-                #drop inf values
-                df.replace([np.inf, -np.inf], np.nan, inplace = True)
-                df.dropna(inplace = True)
-
-                obs = df['obs']
-                mod = df['mod']
-
-                #calculate scoring
-                rmse = round(mean_squared_error(obs, mod, squared=False))
-                maxerror = round(max_error(obs, mod))
-                MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
-                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
                 
-                #set limit to MAPE error
-                if MAPE > 1000:
-                    MAPE ='> 1000'
+                df.dropna(axis = 0, inplace =True)
+                if len(df)> 0:
+                    df['error'] = df['obs'] - df['mod']
+                    df['P_error'] = abs(df['error']/df['obs'])*100
+                    #drop inf values
+                    df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                    df.dropna(inplace = True)
 
-                rmse_phrase = 'RMSE: ' + str(rmse) + ' ' +  self.units
-                error_phrase = 'Max Error: ' + str(maxerror) + ' ' + self.units
-                mape_phrase = 'MAPE: ' + str(MAPE) + '%'
-                kge_phrase = 'kge: ' + str(round(kge[0],2))
-                
+                    obs = df['obs']
+                    mod = df['mod']
 
-                max_flow = max(max(Eval_df[NWIS_site_lab]), max(Eval_df[Mod_reach_lab]))
-                min_flow = min(min(Eval_df[NWIS_site_lab]), min(Eval_df[Mod_reach_lab]))
+                    #calculate scoring
+                    rmse = round(mean_squared_error(obs, mod, squared=False))
+                    maxerror = round(max_error(obs, mod))
+                    MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
+                    kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
 
-                flow_range = np.arange(min_flow, max_flow, (max_flow-min_flow)/100)
+                    #set limit to MAPE error
+                    if MAPE > 1000:
+                        MAPE ='> 1000'
 
-                if self.freq == 'A':
-                    bbox_L = -int(round((len(Eval_df)*.32),0))
-                    text_bbox_L = -int(round((len(Eval_df)*.18),0))
-                    
+                    rmse_phrase = 'RMSE: ' + str(rmse) + ' ' +  self.units
+                    error_phrase = 'Max Error: ' + str(maxerror) + ' ' + self.units
+                    mape_phrase = 'MAPE: ' + str(MAPE) + '%'
+                    kge_phrase = 'kge: ' + str(round(kge[0],2))
+
+
+                    max_flow = max(max(Eval_df[NWIS_site_lab]), max(Eval_df[Mod_reach_lab]))
+                    min_flow = min(min(Eval_df[NWIS_site_lab]), min(Eval_df[Mod_reach_lab]))
+
+                    flow_range = np.arange(min_flow, max_flow, (max_flow-min_flow)/100)
+
+                    if self.freq == 'A':
+                        bbox_L = -int(round((len(Eval_df)*.32),0))
+                        text_bbox_L = -int(round((len(Eval_df)*.18),0))
+
+                    else:
+                        bbox_L = -int(round((len(Eval_df)*.32),0))
+                        text_bbox_L = -int(round((len(Eval_df)*.16),0))
+
+                    Discharge_lab = 'Discharge (' +self.units +')'
+                    Obs_Discharge_lab = ' Observed Discharge (' +self.units +')'
+                    Mod_Discharge_lab = self.model +' Discharge (' +self.units +')'
+
+
+                    NWIS_hydrograph = hv.Curve((Eval_df.index, Eval_df[NWIS_site_lab]), 'DateTime', Discharge_lab, label = NWIS_site_lab).opts(title = plot_title, tools = ['hover'], color = 'orange')
+                    Mod_hydrograph = hv.Curve((Eval_df.index, Eval_df[Mod_reach_lab]), 'DateTime', Discharge_lab, label = Mod_reach_lab).opts(tools = ['hover'], color = 'blue')
+                    RMSE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.93, rmse_phrase, fontsize = 8)
+                    Error_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.83, error_phrase, fontsize = 8)
+                    MAPE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.73, mape_phrase, fontsize = 8)
+                    KGE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.63, kge_phrase, fontsize = 8)
+                    textbox_hv = hv.Rectangles([(Eval_df.index[bbox_L], max_flow*.56, Eval_df.index[-1], max_flow*.99)]).opts(color = 'white')
+
+                    Mod_NWIS_Scatter = hv.Scatter((Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]), Obs_Discharge_lab, Mod_Discharge_lab).opts(tools = ['hover'], color = 'blue', xrotation=45)
+                    Mod_NWIS_one2one = hv.Curve((flow_range, flow_range)).opts(color = 'red', line_dash='dashed')
+
+
+                    #display((NWIS_hydrograph * Mod_hydrograph).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
+                    display((NWIS_hydrograph * Mod_hydrograph*textbox_hv*RMSE_hv*Error_hv*MAPE_hv*KGE_hv).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
+
                 else:
-                    bbox_L = -int(round((len(Eval_df)*.32),0))
-                    text_bbox_L = -int(round((len(Eval_df)*.16),0))
-
-                Discharge_lab = 'Discharge (' +self.units +')'
-                Obs_Discharge_lab = ' Observed Discharge (' +self.units +')'
-                Mod_Discharge_lab = self.model +' Discharge (' +self.units +')'
-
-
-                NWIS_hydrograph = hv.Curve((Eval_df.index, Eval_df[NWIS_site_lab]), 'DateTime', Discharge_lab, label = NWIS_site_lab).opts(title = plot_title, tools = ['hover'], color = 'orange')
-                Mod_hydrograph = hv.Curve((Eval_df.index, Eval_df[Mod_reach_lab]), 'DateTime', Discharge_lab, label = Mod_reach_lab).opts(tools = ['hover'], color = 'blue')
-                RMSE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.93, rmse_phrase, fontsize = 8)
-                Error_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.83, error_phrase, fontsize = 8)
-                MAPE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.73, mape_phrase, fontsize = 8)
-                KGE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.63, kge_phrase, fontsize = 8)
-                textbox_hv = hv.Rectangles([(Eval_df.index[bbox_L], max_flow*.56, Eval_df.index[-1], max_flow*.99)]).opts(color = 'white')
-
-                Mod_NWIS_Scatter = hv.Scatter((Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]), Obs_Discharge_lab, Mod_Discharge_lab).opts(tools = ['hover'], color = 'blue', xrotation=45)
-                Mod_NWIS_one2one = hv.Curve((flow_range, flow_range)).opts(color = 'red', line_dash='dashed')
-
-
-                #display((NWIS_hydrograph * Mod_hydrograph).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
-                display((NWIS_hydrograph * Mod_hydrograph*textbox_hv*RMSE_hv*Error_hv*MAPE_hv*KGE_hv).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
-
-            else:
-                print('No data for NWIS site: ', str(NWIS_site_lab), ' skipping.')
+                    print('No data for NWIS site: ', str(NWIS_site_lab), ' skipping.')
 
 
 
@@ -2100,25 +2142,42 @@ class Reach_Eval():
             df = pd.DataFrame()
             df['obs'] = obs
             df['mod'] = mod.astype('float64')
-            df['error'] = df['obs'] - df['mod']
-            df['P_error'] = abs(df['error']/df['obs'])*100
-            #drop inf values
-            df.replace([np.inf, -np.inf], np.nan, inplace = True)
-            df.dropna(inplace = True)
-            
-            obs = df['obs']
-            mod = df['mod']
+            df.dropna(axis=0, inplace =True)
 
-            #calculate scoring
-            rmse = round(mean_squared_error(obs, mod, squared=False))
-            maxerror = round(max_error(obs, mod))
-            mape = df.P_error.mean()
-            kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+            if len(df)>0:
+                df['error'] = df['obs'] - df['mod']
+                df['P_error'] = abs(df['error']/df['obs'])*100
+                #drop inf values
+                df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                df.dropna(inplace = True)
 
-            RMSE.append(rmse)
-            MAXERROR.append(maxerror)
-            MAPE.append(mape)
-            KGE.append(kge[0])
+                obs = df['obs']
+                mod = df['mod']
+
+
+
+                #calculate scoring
+                rmse = round(mean_squared_error(obs, mod, squared=False))
+                maxerror = round(max_error(obs, mod))
+                mape = df.P_error.mean()
+                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
+
+                RMSE.append(rmse)
+                MAXERROR.append(maxerror)
+                MAPE.append(mape)
+                KGE.append(kge[0])
+                
+            else:
+                #calculate scoring
+                rmse = 0
+                maxerror = 0
+                mape = 0
+                kge = 0
+                
+                RMSE.append(rmse)
+                MAXERROR.append(maxerror)
+                MAPE.append(mape)
+                KGE.append(kge)
 
         #Connect model evaluation to a DF, add in relevant information concerning LULC
         Eval = pd.DataFrame()
@@ -2230,6 +2289,7 @@ class Reach_Eval():
             site = self.Eval['NWIS_site_id'][i]
             #print(site, reach)
             sitename = self.Eval.Location[i]
+            print(sitename)
 
             plot_title = self.freqkeys[self.freq]+ ' (' + self.units +') \n Performance of ' + self.model +' predictions, reach: ' + str(reach) + '\n USGS:' + str(site) +' ' + str(sitename)
             #plot_title = self.sites['name'][0] +' Basin' + ' ' + self.freqkeys[self.freq]+ ' (' + self.units +') \n Performance of ' + self.model +' predictions, reach: ' + str(reach) + '\n USGS:' + str(site) +' ' + str(sitename)
@@ -2249,6 +2309,7 @@ class Reach_Eval():
 
 
             Eval_df = Eval_df.dropna()
+            display(Eval_df)
 
             if Eval_df.shape[0] > 0:
 
@@ -2265,62 +2326,65 @@ class Reach_Eval():
                 df = pd.DataFrame()
                 df['obs'] = obs
                 df['mod'] = mod.astype('float64')
-                df['error'] = df['obs'] - df['mod']
-                df['P_error'] = abs(df['error']/df['obs'])*100
-                #drop inf values
-                df.replace([np.inf, -np.inf], np.nan, inplace = True)
-                df.dropna(inplace = True)
-
-                obs = df['obs']
-                mod = df['mod']
-
-                #calculate scoring
-                rmse = round(mean_squared_error(obs, mod, squared=False))
-                maxerror = round(max_error(obs, mod))
-                MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
-                kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
                 
-                #set limit to MAPE error
-                if MAPE > 1000:
-                    MAPE ='> 1000'
+                df.dropna(axis = 0, inplace = True)
+                if len(df) > 0:
+                    df['error'] = df['obs'] - df['mod']
+                    df['P_error'] = abs(df['error']/df['obs'])*100
+                    #drop inf values
+                    df.replace([np.inf, -np.inf], np.nan, inplace = True)
+                    df.dropna(inplace = True)
 
-                rmse_phrase = 'RMSE: ' + str(rmse) +' ' +  self.units
-                error_phrase = 'Max Error: ' + str(maxerror) +' ' + self.units
-                mape_phrase = 'MAPE: ' + str(MAPE) + '%'
-                kge_phrase = 'kge: ' + str(round(kge[0],2))
-                
-                max_flow = max(max(Eval_df[NWIS_site_lab]), max(Eval_df[Mod_reach_lab]))
-                min_flow = min(min(Eval_df[NWIS_site_lab]), min(Eval_df[Mod_reach_lab]))
+                    obs = df['obs']
+                    mod = df['mod']
 
-                flow_range = np.arange(min_flow, max_flow, (max_flow-min_flow)/100)
+                    #calculate scoring
+                    rmse = round(mean_squared_error(obs, mod, squared=False))
+                    maxerror = round(max_error(obs, mod))
+                    MAPE = round(mean_absolute_percentage_error(obs, mod)*100)
+                    kge, r, alpha, beta = he.evaluator(he.kge, mod.astype('float32'), obs.astype('float32'))
 
-                if self.freq == 'A':
-                    bbox_L = -int(round((len(Eval_df)*.32),0))
-                    text_bbox_L = -int(round((len(Eval_df)*.18),0))
-                    
-                else:
-                    bbox_L = -int(round((len(Eval_df)*.32),0))
-                    text_bbox_L = -int(round((len(Eval_df)*.16),0))
+                    #set limit to MAPE error
+                    if MAPE > 1000:
+                        MAPE ='> 1000'
 
-                Discharge_lab = 'Discharge (' +self.units +')'
-                Obs_Discharge_lab = ' Observed Discharge (' +self.units +')'
-                Mod_Discharge_lab = self.model +' Discharge (' +self.units +')'
+                    rmse_phrase = 'RMSE: ' + str(rmse) +' ' +  self.units
+                    error_phrase = 'Max Error: ' + str(maxerror) +' ' + self.units
+                    mape_phrase = 'MAPE: ' + str(MAPE) + '%'
+                    kge_phrase = 'kge: ' + str(round(kge[0],2))
+
+                    max_flow = max(max(Eval_df[NWIS_site_lab]), max(Eval_df[Mod_reach_lab]))
+                    min_flow = min(min(Eval_df[NWIS_site_lab]), min(Eval_df[Mod_reach_lab]))
+
+                    flow_range = np.arange(min_flow, max_flow, (max_flow-min_flow)/100)
+
+                    if self.freq == 'A':
+                        bbox_L = -int(round((len(Eval_df)*.32),0))
+                        text_bbox_L = -int(round((len(Eval_df)*.18),0))
+
+                    else:
+                        bbox_L = -int(round((len(Eval_df)*.32),0))
+                        text_bbox_L = -int(round((len(Eval_df)*.16),0))
+
+                    Discharge_lab = 'Discharge (' +self.units +')'
+                    Obs_Discharge_lab = ' Observed Discharge (' +self.units +')'
+                    Mod_Discharge_lab = self.model +' Discharge (' +self.units +')'
 
 
-                NWIS_hydrograph = hv.Curve((Eval_df.index, Eval_df[NWIS_site_lab]), 'DateTime', Discharge_lab, label = NWIS_site_lab).opts(title = plot_title, tools = ['hover'], color = 'orange')
-                Mod_hydrograph = hv.Curve((Eval_df.index, Eval_df[Mod_reach_lab]), 'DateTime', Discharge_lab, label = Mod_reach_lab).opts(tools = ['hover'], color = 'blue')
-                RMSE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.93, rmse_phrase, fontsize = 8)
-                Error_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.83, error_phrase, fontsize = 8)
-                MAPE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.73, mape_phrase, fontsize = 8)
-                KGE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.63, kge_phrase, fontsize = 8)
-                textbox_hv = hv.Rectangles([(Eval_df.index[bbox_L], max_flow*.56, Eval_df.index[-1], max_flow*.99)]).opts(color = 'white')
+                    NWIS_hydrograph = hv.Curve((Eval_df.index, Eval_df[NWIS_site_lab]), 'DateTime', Discharge_lab, label = NWIS_site_lab).opts(title = plot_title, tools = ['hover'], color = 'orange')
+                    Mod_hydrograph = hv.Curve((Eval_df.index, Eval_df[Mod_reach_lab]), 'DateTime', Discharge_lab, label = Mod_reach_lab).opts(tools = ['hover'], color = 'blue')
+                    RMSE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.93, rmse_phrase, fontsize = 8)
+                    Error_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.83, error_phrase, fontsize = 8)
+                    MAPE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.73, mape_phrase, fontsize = 8)
+                    KGE_hv = hv.Text(Eval_df.index[text_bbox_L],max_flow*.63, kge_phrase, fontsize = 8)
+                    textbox_hv = hv.Rectangles([(Eval_df.index[bbox_L], max_flow*.56, Eval_df.index[-1], max_flow*.99)]).opts(color = 'white')
 
-                Mod_NWIS_Scatter = hv.Scatter((Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]), Obs_Discharge_lab, Mod_Discharge_lab).opts(tools = ['hover'], color = 'blue', xrotation=45)
-                Mod_NWIS_one2one = hv.Curve((flow_range, flow_range)).opts(color = 'red', line_dash='dashed')
+                    Mod_NWIS_Scatter = hv.Scatter((Eval_df[NWIS_site_lab], Eval_df[Mod_reach_lab]), Obs_Discharge_lab, Mod_Discharge_lab).opts(tools = ['hover'], color = 'blue', xrotation=45)
+                    Mod_NWIS_one2one = hv.Curve((flow_range, flow_range)).opts(color = 'red', line_dash='dashed')
 
 
-                #display((NWIS_hydrograph * Mod_hydrograph).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
-                display((NWIS_hydrograph * Mod_hydrograph*textbox_hv*RMSE_hv*Error_hv*MAPE_hv*KGE_hv).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
+                    #display((NWIS_hydrograph * Mod_hydrograph).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
+                    display((NWIS_hydrograph * Mod_hydrograph*textbox_hv*RMSE_hv*Error_hv*MAPE_hv*KGE_hv).opts(width=600, legend_position='top_left', tools=['hover']) + (Mod_NWIS_Scatter*Mod_NWIS_one2one).opts(shared_axes = False))
 
             else:
                 print('No data for NWIS site: ', str(NWIS_site_lab), ' skipping.')
