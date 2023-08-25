@@ -1,7 +1,7 @@
 
 ![Github_top](https://user-images.githubusercontent.com/33735397/206313977-e67ba652-3340-4a1b-b1d1-141d8d5001f2.PNG)
 
-# Streamflow_Evaluator
+# Research-Oriented Streamflow Evaluation Tool (ROSET)
 
 ![GitHub](https://img.shields.io/github/license/whitelightning450/Streamflow_Evaluator?logo=GitHub&style=plastic)
 ![GitHub top language](https://img.shields.io/github/languages/top/whitelightning450/Streamflow_Evaluator?style=plastic)
